@@ -1,0 +1,120 @@
+---
+title: Authentication
+description: JWT and API key authentication, budget caps, and allowlists.
+---
+
+# Authentication
+
+The Faces API accepts two authentication methods: **JWT tokens** (for server-to-server use right after login) and **API keys** (for long-lived application access). Both are passed as a `Bearer` token in the `Authorization` header.
+
+```
+Authorization: Bearer <token>
+```
+
+---
+
+## JWT tokens
+
+JWTs are issued by the `/auth/verify` endpoint after wallet signature verification. They expire after a short window and are suitable for immediate use in client-side flows or testing.
+
+```bash
+# Get a nonce
+curl https://api.faces.ai/auth/nonce/0xYOUR_ADDRESS
+
+# Sign with your wallet and verify
+curl -X POST https://api.faces.ai/auth/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "address": "0xYOUR_ADDRESS",
+    "signature": "0xSIG",
+    "nonce": "NONCE"
+  }'
+```
+
+Response:
+```json
+{
+  "data": {
+    "access_token": "eyJ...",
+    "token_type": "bearer"
+  }
+}
+```
+
+---
+
+## API keys
+
+API keys are the recommended method for production applications. They do not expire and can be scoped with budget caps and domain allowlists.
+
+### Create an API key
+
+```bash
+curl -X POST https://api.faces.ai/v1/api-keys \
+  -H "Authorization: Bearer YOUR_JWT_OR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "production",
+    "budget_usd": 50.00,
+    "allowlist": ["yourapp.com", "localhost"]
+  }'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Human-readable label |
+| `budget_usd` | float (optional) | Hard spend cap in USD. Requests fail with `402` once exhausted. |
+| `allowlist` | array (optional) | Allowed `Origin` or `Referer` hostnames. Empty = unrestricted. |
+
+### List API keys
+
+```bash
+curl https://api.faces.ai/v1/api-keys \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+### Revoke an API key
+
+```bash
+curl -X DELETE https://api.faces.ai/v1/api-keys/KEY_ID \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+---
+
+## Budget caps
+
+When a budget cap is set on an API key, every chat request checks the remaining budget before proceeding. If the balance is zero or the key is frozen, the API returns:
+
+```json
+HTTP 402 Payment Required
+{
+  "detail": "Insufficient credits"
+}
+```
+
+Top up credits via the [billing API](/guides/billing) or the dashboard.
+
+---
+
+## Allowlists
+
+The `allowlist` field restricts which origins can use the key. This is useful for browser-facing API keys that should not be usable from other domains.
+
+```json
+{ "allowlist": ["myapp.com", "staging.myapp.com"] }
+```
+
+Requests with an `Origin` or `Referer` not in the list are rejected with `403 Forbidden`.
+
+An empty or null allowlist allows all origins — appropriate for server-side keys.
+
+---
+
+## Error codes
+
+| Code | Meaning |
+|------|---------|
+| `401` | Missing or invalid token |
+| `402` | Insufficient credits |
+| `403` | Origin not in allowlist, or permission denied |

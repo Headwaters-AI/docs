@@ -1,0 +1,154 @@
+---
+title: Billing
+description: Credits, subscription plans, compile quota, and Stripe payments.
+---
+
+# Billing
+
+Faces uses a credit-based billing system. Chat completions are billed against your credit balance in real time. Compile quota is allocated per plan and shared across all your faces.
+
+---
+
+## Check your balance
+
+```bash
+curl https://api.faces.ai/v1/billing/balance \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{
+  "data": {
+    "balance_usd": 12.45,
+    "has_payment_method": true,
+    "is_frozen": false
+  }
+}
+```
+
+---
+
+## Subscription plans
+
+| Plan | Price | Face limit | Compile quota |
+|------|-------|-----------|---------------|
+| Free | $0 | 10 | 5,000 tokens (never resets) |
+| Standard | $X/mo | 100 | 50,000 tokens / 30 days |
+| Pro | $X/mo | 1,000 | 1,000,000 tokens / 30 days |
+
+Chat usage (token costs) is billed from your credit balance on all plans.
+
+### Get current subscription
+
+```bash
+curl https://api.faces.ai/v1/billing/subscription \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Upgrade or downgrade
+
+```bash
+# Start Stripe Checkout session
+curl -X POST "https://api.faces.ai/v1/billing/checkout?plan=standard" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns a `checkout_url` to redirect the user to Stripe. After payment, the subscription is activated automatically.
+
+### Cancel subscription
+
+```bash
+curl -X POST https://api.faces.ai/v1/billing/subscription/cancel \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Cancels at the end of the current billing period. The account reverts to the Free plan.
+
+---
+
+## Adding a payment method
+
+Set up a saved card via Stripe Checkout:
+
+```bash
+curl -X POST https://api.faces.ai/v1/billing/card-setup \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns a `checkout_url`. After completing the setup flow, your card is saved for automatic top-ups.
+
+---
+
+## Top up credits
+
+### Charge saved card
+
+```bash
+curl -X POST https://api.faces.ai/v1/billing/topup \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"amount_usd": 20.00}'
+```
+
+Requires a saved payment method. Minimum $1.00.
+
+### Manual / test payment
+
+Pass a `payment_ref` to record a pre-authorized payment:
+
+```bash
+curl -X POST https://api.faces.ai/v1/billing/topup \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"amount_usd": 20.00, "payment_ref": "pi_stripe_payment_intent_id"}'
+```
+
+---
+
+## Compile quota
+
+Compile quota tracks tokens consumed during face compilation. It is separate from chat token usage.
+
+```bash
+curl https://api.faces.ai/v1/billing/compile-quota \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns per-account quota plus a breakdown by face showing tokens in graph, tokens used this period, and tokens used all-time.
+
+See [Compile guide](/guides/compile) for full details on how quota works and what overflow billing does.
+
+---
+
+## LLM pricing
+
+```bash
+curl https://api.faces.ai/v1/billing/llm-costs \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns the current pricing table for all supported models, including per-million-token rates for standard models and per-hour rates for time-based services (e.g. audio transcription).
+
+---
+
+## How chat costs are calculated
+
+Each chat completion deducts from your credit balance:
+
+```
+cost = (prompt_tokens / 1,000,000) × input_price
+     + (completion_tokens / 1,000,000) × output_price
+     × (1 + markup_rate)
+```
+
+The markup rate covers infrastructure costs. The exact rate is shown in the pricing table.
+
+---
+
+## Credit account states
+
+| State | Effect |
+|-------|--------|
+| `balance > 0` | Normal operation |
+| `balance = 0` | Chat requests return `402 Payment Required` |
+| `is_frozen = true` | All requests return `402` regardless of balance |

@@ -1,0 +1,37 @@
+---
+title: Introduction
+description: Programmable personas for AI agents — as nuanced as real humans, using fewer tokens.
+---
+
+# Faces
+
+Faces are compiled soul documents. They give AI agents programmable personas as nuanced as real humans using fewer tokens.
+
+Source texts — interviews, essays, journals, transcripts, chat histories — are compiled into plaintext psychological primitives (alpha, beta, delta, epsilon components) that define a coherent and complex persona. At inference time, the relevant components are retrieved and injected into the system prompt in a compressed form that conveys far more character per token than raw text.
+
+## What you can do
+
+<CardGroup cols={3}>
+  <Card title="Create Faces" icon="user" href="/guides/faces">
+    Define a face, upload source texts, and manage your persona library.
+  </Card>
+  <Card title="Compile" icon="microchip" href="/guides/compile">
+    Compile source documents and threads into psychological primitives.
+  </Card>
+  <Card title="Chat" icon="message" href="/guides/chat">
+    Run inference with any face using the OpenAI-compatible chat API.
+  </Card>
+</CardGroup>
+
+## Key concepts
+
+- **Face** — A named persona with compiled psychological primitives. Can be a person, character, or synthetic blend of multiple faces.
+- **Compile** — The process that transforms uploaded source texts into structured alpha/beta/delta/epsilon components.
+- **Psychological primitives** — The minimal formal language our compiler produces. Compact, retrievable, and composable.
+- **Synthetic faces** — Boolean combinations of existing faces (`alice | bob`, `expert & mentor`, etc.) composed on the fly without extra training.
+
+## Get started
+
+<Card title="Quickstart" icon="rocket" href="/quickstart">
+  Register, get an API key, create a face, upload a document, and start chatting in under 10 minutes.
+</Card>
