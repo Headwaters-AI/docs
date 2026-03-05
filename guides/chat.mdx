@@ -12,7 +12,7 @@ The `/v1/chat/completions` endpoint is OpenAI-compatible. Pass a face username i
 ## Basic usage
 
 ```bash
-curl -X POST https://api.faces.ai/v1/chat/completions \
+curl -X POST https://api.faces.sh/v1/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -50,7 +50,7 @@ The format is `face-username@model-name`. The model must be in the supported mod
 Add `"stream": true` for SSE streaming:
 
 ```bash
-curl -X POST https://api.faces.ai/v1/chat/completions \
+curl -X POST https://api.faces.sh/v1/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -84,7 +84,7 @@ Pass the full message history as you would with any OpenAI-compatible client:
 ## Supported models
 
 ```bash
-curl https://api.faces.ai/v1/models \
+curl https://api.faces.sh/v1/models \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -98,7 +98,7 @@ Faces also exposes pass-through proxy endpoints for direct OpenAI and Anthropic 
 
 ```bash
 # OpenAI proxy
-curl -X POST https://api.faces.ai/v1/openai/chat/completions \
+curl -X POST https://api.faces.sh/v1/openai/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -107,7 +107,7 @@ curl -X POST https://api.faces.ai/v1/openai/chat/completions \
   }'
 
 # Anthropic proxy
-curl -X POST https://api.faces.ai/v1/anthropic/messages \
+curl -X POST https://api.faces.sh/v1/anthropic/messages \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -128,7 +128,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="YOUR_API_KEY",
-    base_url="https://api.faces.ai/v1"
+    base_url="https://api.faces.sh/v1"
 )
 
 response = client.chat.completions.create(

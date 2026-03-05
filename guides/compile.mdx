@@ -27,20 +27,20 @@ Uploading a file does not immediately compile it. Files are staged as **document
 
 ```bash
 # Upload a document
-curl -X POST https://api.faces.ai/v1/faces/FACE_ID/upload \
+curl -X POST https://api.faces.sh/v1/faces/FACE_ID/upload \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@interview.txt" \
   -F "type=document"
 
 # Trigger compilation
-curl -X POST https://api.faces.ai/v1/faces/FACE_ID/sync \
+curl -X POST https://api.faces.sh/v1/faces/FACE_ID/sync \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 Compilation is asynchronous. Check the face's sync status:
 
 ```bash
-curl https://api.faces.ai/v1/faces/FACE_ID \
+curl https://api.faces.sh/v1/faces/FACE_ID \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -51,7 +51,7 @@ The `sync_status` field will be `"syncing"` while compilation is in progress and
 ## Listing documents
 
 ```bash
-curl https://api.faces.ai/v1/faces/FACE_ID/documents \
+curl https://api.faces.sh/v1/faces/FACE_ID/documents \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -60,7 +60,7 @@ curl https://api.faces.ai/v1/faces/FACE_ID/documents \
 ## Deleting a document
 
 ```bash
-curl -X DELETE https://api.faces.ai/v1/faces/FACE_ID/documents/DOCUMENT_ID \
+curl -X DELETE https://api.faces.sh/v1/faces/FACE_ID/documents/DOCUMENT_ID \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -81,7 +81,7 @@ Each plan includes a monthly compile quota measured in tokens:
 Quota is shared across all faces in your account. Check your current usage:
 
 ```bash
-curl https://api.faces.ai/v1/billing/compile-quota \
+curl https://api.faces.sh/v1/billing/compile-quota \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
