@@ -27,7 +27,7 @@ Each component is embedded independently, so similarity can be measured globally
 ## Compare multiple faces
 
 ```bash
-curl "https://api.faces.ai/v1/faces/diff?faces=alice,bob,carol" \
+curl "https://api.faces.sh/v1/faces/diff?faces=alice,bob,carol" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -59,7 +59,7 @@ Returns pairwise cosine similarities between the listed faces across all four co
 ## Find similar faces
 
 ```bash
-curl "https://api.faces.ai/v1/faces/FACE_ID/neighbors?k=5&component=face&direction=nearest" \
+curl "https://api.faces.sh/v1/faces/FACE_ID/neighbors?k=5&component=face&direction=nearest" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 

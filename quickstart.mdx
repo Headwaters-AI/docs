@@ -9,7 +9,7 @@ This guide walks you through the full workflow: register an account, create a fa
 
 ## Prerequisites
 
-- API base URL: `https://api.faces.ai`
+- API base URL: `https://api.faces.sh`
 - Replace `YOUR_API_KEY` with a real key obtained in step 2.
 
 ---
@@ -24,10 +24,10 @@ Registration via wallet (EIP-191 signing) or invite code:
 
 ```bash
 # Step 1: get a nonce for your wallet address
-curl https://api.faces.ai/auth/nonce/0xYOUR_WALLET_ADDRESS
+curl https://api.faces.sh/auth/nonce/0xYOUR_WALLET_ADDRESS
 
 # Step 2: sign the nonce with your wallet and verify
-curl -X POST https://api.faces.ai/auth/verify \
+curl -X POST https://api.faces.sh/auth/verify \
   -H "Content-Type: application/json" \
   -d '{
     "address": "0xYOUR_WALLET_ADDRESS",
@@ -43,7 +43,7 @@ The response contains a JWT `access_token`. Use it as a Bearer token for subsequ
 ## 2. Create an API key
 
 ```bash
-curl -X POST https://api.faces.ai/v1/api-keys \
+curl -X POST https://api.faces.sh/v1/api-keys \
   -H "Authorization: Bearer YOUR_JWT" \
   -H "Content-Type: application/json" \
   -d '{"name": "my-app"}'
@@ -66,7 +66,7 @@ Store this key. All examples below use `YOUR_API_KEY`.
 ## 3. Create a face
 
 ```bash
-curl -X POST https://api.faces.ai/v1/faces \
+curl -X POST https://api.faces.sh/v1/faces \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -94,7 +94,7 @@ curl -X POST https://api.faces.ai/v1/faces \
 Upload a plain-text file that describes or characterizes the face:
 
 ```bash
-curl -X POST https://api.faces.ai/v1/faces/face_abc123/upload \
+curl -X POST https://api.faces.sh/v1/faces/face_abc123/upload \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@alice_journal.txt" \
   -F "type=document"
@@ -109,14 +109,14 @@ You can also upload PDF files, audio, or video — see [Faces guide](/guides/fac
 Trigger compilation of all pending source texts:
 
 ```bash
-curl -X POST https://api.faces.ai/v1/faces/face_abc123/sync \
+curl -X POST https://api.faces.sh/v1/faces/face_abc123/sync \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 Compilation is asynchronous. Poll the face status or wait a few seconds before chatting:
 
 ```bash
-curl https://api.faces.ai/v1/faces/face_abc123 \
+curl https://api.faces.sh/v1/faces/face_abc123 \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -129,7 +129,7 @@ When `sync_status` is `"synced"`, the face is ready.
 Use the OpenAI-compatible endpoint. Pass the face username in the `model` field:
 
 ```bash
-curl -X POST https://api.faces.ai/v1/chat/completions \
+curl -X POST https://api.faces.sh/v1/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

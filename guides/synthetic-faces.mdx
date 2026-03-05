@@ -32,7 +32,7 @@ alice | (expert - academic)
 Pass a `formula` instead of uploading documents:
 
 ```bash
-curl -X POST https://api.faces.ai/v1/faces \
+curl -X POST https://api.faces.sh/v1/faces \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -52,7 +52,7 @@ Nesting synthetic faces — referencing a face that itself has a formula — is 
 ## Update the formula
 
 ```bash
-curl -X PATCH https://api.faces.ai/v1/faces/FACE_ID \
+curl -X PATCH https://api.faces.sh/v1/faces/FACE_ID \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"formula": "alice & mentor"}'
@@ -67,7 +67,7 @@ Changes take effect immediately on the next chat request.
 Exactly the same as chatting with any face:
 
 ```bash
-curl -X POST https://api.faces.ai/v1/chat/completions \
+curl -X POST https://api.faces.sh/v1/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
