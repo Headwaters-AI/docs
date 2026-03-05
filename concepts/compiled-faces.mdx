@@ -1,0 +1,67 @@
+---
+title: Compiled Faces
+description: How source texts become a face — the minimal formal language of compiled psychological primitives.
+---
+
+# Compiled Faces
+
+A compiled face is more than a system prompt. It is a structured representation of a persona — built from source texts and expressed in a minimal formal language that can be retrieved, ranked, and composed efficiently at inference time.
+
+---
+
+## The compilation process
+
+When you upload source texts and trigger a sync, the compiler reads each document or thread and produces a set of **psychological primitives**: discrete, self-contained statements about the persona expressed in a constrained vocabulary and grammar.
+
+These primitives are organized into four named components:
+
+- **Alpha** — core self-concept and identity statements
+- **Beta** — values, preferences, and evaluative stances
+- **Delta** — patterns of thought, reasoning style, and cognitive tendencies
+- **Epsilon** — behavioral patterns, habits, and characteristic actions
+
+Each component is stored separately in the knowledge graph and has its own embedding in the centroid index. This structure allows the system to retrieve the most contextually relevant primitives for a given conversation, rather than injecting everything at once.
+
+---
+
+## Why fewer tokens
+
+Raw source texts are verbose. A 10,000-token interview might contain 80% context and repetition, with the actual characterizing content concentrated in 1,500–2,000 tokens of distinctive statements.
+
+Compiled primitives strip the scaffolding. What gets injected at inference time is not a summary or excerpt — it is the minimal formal expression of the persona's distinctive qualities, ranked by relevance to the current conversation context.
+
+The result is a persona injection that conveys more character per token than any hand-written system prompt of equivalent length.
+
+---
+
+## The minimal formal language
+
+Primitives are written in a constrained plaintext format — terse, first-person or third-person depending on component type, stripped of hedging and filler. The compiler enforces structural consistency across all faces, which makes the representations composable.
+
+This is why [synthetic faces](/guides/synthetic-faces) work: the boolean algebra operates on sets of primitives that share a grammar. Union, intersection, and difference are well-defined over them in a way they would not be over raw prose.
+
+---
+
+## What makes a good source text
+
+The compiler works best with texts that are:
+
+- **Direct**: first-person writing, interviews, transcripts, candid essays
+- **Characterizing**: texts where the person expresses how they think and feel, not just what they did
+- **Dense**: material where a high proportion of statements are distinctive to this person
+
+Biographies written by others, dry CVs, and factual reports produce weaker primitives. The compiler can work with them, but the signal-to-noise ratio is lower.
+
+---
+
+## Relation to `basic_facts`
+
+`basic_facts` is a raw string injected verbatim into every system prompt. It is not compiled — it bypasses the psychological primitives entirely. Use it for stable, factual context (name, role, current situation) that should always be present regardless of what the conversation is about.
+
+The compiled components are retrieved selectively based on the conversation. `basic_facts` is always present.
+
+---
+
+## Updating compiled content
+
+Compiled content is not automatically updated when you upload new documents. You must trigger a sync explicitly. After syncing, the new primitives are merged into the existing graph — prior compilation is not discarded unless you delete the contributing documents.

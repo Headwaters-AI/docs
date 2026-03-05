@@ -1,80 +1,169 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Create a face, compile a document, and chat — end to end.
 ---
 
-## Get started in three steps
+# Quickstart
 
-Get your documentation site running locally and make your first customization.
+This guide walks you through the full workflow: register an account, create a face, upload a source document, compile it, and run a chat completion.
 
-### Step 1: Set up your local environment
+## Prerequisites
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+- API base URL: `https://api.faces.ai`
+- Replace `YOUR_API_KEY` with a real key obtained in step 2.
 
-### Step 2: Deploy your changes
+---
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+## 1. Register
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+<Note>
+  If you already have an account, skip to step 2.
+</Note>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+Registration via wallet (EIP-191 signing) or invite code:
 
-### Step 3: Go live
+```bash
+# Step 1: get a nonce for your wallet address
+curl https://api.faces.ai/auth/nonce/0xYOUR_WALLET_ADDRESS
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+# Step 2: sign the nonce with your wallet and verify
+curl -X POST https://api.faces.ai/auth/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "address": "0xYOUR_WALLET_ADDRESS",
+    "signature": "0xYOUR_SIGNATURE",
+    "nonce": "NONCE_FROM_STEP_1"
+  }'
+```
+
+The response contains a JWT `access_token`. Use it as a Bearer token for subsequent requests, or create an API key (step 2).
+
+---
+
+## 2. Create an API key
+
+```bash
+curl -X POST https://api.faces.ai/v1/api-keys \
+  -H "Authorization: Bearer YOUR_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my-app"}'
+```
+
+```json
+{
+  "data": {
+    "key": "sk-faces-...",
+    "name": "my-app",
+    "created_at": "2026-03-05T00:00:00Z"
+  }
+}
+```
+
+Store this key. All examples below use `YOUR_API_KEY`.
+
+---
+
+## 3. Create a face
+
+```bash
+curl -X POST https://api.faces.ai/v1/faces \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "alice",
+    "basic_facts": "Alice is a product designer in her 30s based in Berlin."
+  }'
+```
+
+```json
+{
+  "data": {
+    "id": "face_abc123",
+    "username": "alice",
+    "basic_facts": "Alice is a product designer in her 30s based in Berlin.",
+    "default_model": null,
+    "created_at": "2026-03-05T00:00:00Z"
+  }
+}
+```
+
+---
+
+## 4. Upload a source document
+
+Upload a plain-text file that describes or characterizes the face:
+
+```bash
+curl -X POST https://api.faces.ai/v1/faces/face_abc123/upload \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@alice_journal.txt" \
+  -F "type=document"
+```
+
+You can also upload PDF files, audio, or video — see [Faces guide](/guides/faces).
+
+---
+
+## 5. Compile (sync)
+
+Trigger compilation of all pending source texts:
+
+```bash
+curl -X POST https://api.faces.ai/v1/faces/face_abc123/sync \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Compilation is asynchronous. Poll the face status or wait a few seconds before chatting:
+
+```bash
+curl https://api.faces.ai/v1/faces/face_abc123 \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+When `sync_status` is `"synced"`, the face is ready.
+
+---
+
+## 6. Chat
+
+Use the OpenAI-compatible endpoint. Pass the face username in the `model` field:
+
+```bash
+curl -X POST https://api.faces.ai/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "alice",
+    "messages": [
+      {"role": "user", "content": "What do you think about Berlin?"}
+    ]
+  }'
+```
+
+```json
+{
+  "id": "chatcmpl-...",
+  "object": "chat.completion",
+  "choices": [{
+    "message": {
+      "role": "assistant",
+      "content": "Berlin has this incredible energy — it rewards people who are comfortable with ambiguity..."
+    },
+    "finish_reason": "stop"
+  }],
+  "usage": { "prompt_tokens": 312, "completion_tokens": 87, "total_tokens": 399 }
+}
+```
+
+<Tip>
+  To specify a particular LLM backend, use `"model": "alice@gpt-4o-mini"` syntax. See [Chat guide](/guides/chat).
+</Tip>
+
+---
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+- [Add more faces and manage your library](/guides/faces)
+- [Understand compilation and compile quota](/guides/compile)
+- [Build synthetic faces from boolean expressions](/guides/synthetic-faces)
+- [Manage billing and subscription plans](/guides/billing)

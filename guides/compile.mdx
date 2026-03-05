@@ -1,0 +1,128 @@
+---
+title: Compile
+description: Transform source texts into compiled psychological primitives.
+---
+
+# Compile
+
+Compilation is the process that transforms uploaded source texts — documents, transcripts, conversation threads — into the psychological primitives that define a face's persona. The compiled output is stored in the graph and retrieved at inference time.
+
+---
+
+## Document types
+
+### Documents
+
+A **document** is any source text that describes or characterizes the face from the outside: an interview, biography, essay, article, journal entry, or PDF. Documents are compiled into structured components that express the persona in a minimal formal language.
+
+### Threads
+
+A **thread** is a conversation transcript — a direct record of how the face expresses itself. Threads are compiled differently, capturing speech patterns, response style, and interaction habits.
+
+---
+
+## Prepare → Sync workflow
+
+Uploading a file does not immediately compile it. Files are staged as **documents** or **threads** in a pending state. Trigger compilation explicitly with the sync endpoint:
+
+```bash
+# Upload a document
+curl -X POST https://api.faces.ai/v1/faces/FACE_ID/upload \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@interview.txt" \
+  -F "type=document"
+
+# Trigger compilation
+curl -X POST https://api.faces.ai/v1/faces/FACE_ID/sync \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Compilation is asynchronous. Check the face's sync status:
+
+```bash
+curl https://api.faces.ai/v1/faces/FACE_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+The `sync_status` field will be `"syncing"` while compilation is in progress and `"synced"` when complete.
+
+---
+
+## Listing documents
+
+```bash
+curl https://api.faces.ai/v1/faces/FACE_ID/documents \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+---
+
+## Deleting a document
+
+```bash
+curl -X DELETE https://api.faces.ai/v1/faces/FACE_ID/documents/DOCUMENT_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Deleting a compiled document removes its contribution from the face's knowledge graph and decrements your compile token usage accordingly.
+
+---
+
+## Compile quota
+
+Each plan includes a monthly compile quota measured in tokens:
+
+| Plan | Quota | Reset |
+|------|-------|-------|
+| Free | 5,000 tokens | Never |
+| Standard | 50,000 tokens | Every 30 days |
+| Pro | 1,000,000 tokens | Every 30 days |
+
+Quota is shared across all faces in your account. Check your current usage:
+
+```bash
+curl https://api.faces.ai/v1/billing/compile-quota \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{
+  "data": {
+    "plan": "standard",
+    "tokens_used": 12400,
+    "tokens_limit": 50000,
+    "resets_at": "2026-04-05T00:00:00Z",
+    "faces": [
+      {
+        "face_id": "face_abc123",
+        "username": "alice",
+        "tokens_in_graph": 8200,
+        "tokens_charged_period": 8200,
+        "tokens_charged_alltime": 21600
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Overflow billing
+
+When you exceed your plan quota, compilation continues but additional tokens are billed to your credit balance at the standard rate for the underlying model. This prevents compile jobs from silently failing when you hit your quota ceiling.
+
+If your credit balance is also exhausted, compilation stops and returns `402`.
+
+---
+
+## Uploading large files
+
+Text and PDF files can be uploaded directly. Audio and video files are transcribed before compilation — the transcription counts against your credit balance, not your compile quota.
+
+For batch imports, consider using the [YouTube import endpoint](/guides/faces#import-from-youtube) or the upload endpoint in a loop.
+
+---
+
+## Compile vs. chat tokens
+
+Compile quota tracks the tokens consumed during compilation (reading and processing your source texts). Chat token usage is separate and billed against your credit balance based on the LLM model used for each conversation.

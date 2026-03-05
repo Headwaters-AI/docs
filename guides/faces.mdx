@@ -1,0 +1,162 @@
+---
+title: Faces
+description: Create, configure, and manage your face personas.
+---
+
+# Faces
+
+A face is a named persona — a compiled character that can be used as the system personality for any chat completion. Faces are identified by a unique `username` within your account.
+
+---
+
+## Create a face
+
+```bash
+curl -X POST https://api.faces.ai/v1/faces \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "alice",
+    "basic_facts": "Alice is a product designer in her 30s based in Berlin."
+  }'
+```
+
+### Username rules
+
+- Lowercase letters, numbers, and dashes only: `^[a-z0-9-]+$`
+- Maximum 32 characters
+- Must be unique within your account
+
+### `basic_facts`
+
+A free-text string injected verbatim into the system prompt on every chat request. Use it for facts that should always be present regardless of compiled context: name, role, location, key relationships.
+
+---
+
+## List faces
+
+```bash
+curl https://api.faces.ai/v1/faces \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+---
+
+## Get a face
+
+```bash
+curl https://api.faces.ai/v1/faces/FACE_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+---
+
+## Update a face
+
+```bash
+curl -X PATCH https://api.faces.ai/v1/faces/FACE_ID \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "basic_facts": "Alice is a senior product designer and manager at a fintech company.",
+    "default_model": "gpt-4o-mini"
+  }'
+```
+
+### `default_model`
+
+Sets the LLM used when no model is specified in the chat request. Accepts any model name from the [supported models list](/api-reference/openapi). Leave null to use the system default.
+
+---
+
+## Delete a face
+
+```bash
+curl -X DELETE https://api.faces.ai/v1/faces/FACE_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Deleting a face drops its compiled psychological primitives and removes it from the centroid index. Documents compiled exclusively for this face are also removed.
+
+---
+
+## Upload source texts
+
+Upload documents, transcripts, or threads to be compiled into the face.
+
+```bash
+# Text or PDF document
+curl -X POST https://api.faces.ai/v1/faces/FACE_ID/upload \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@interview.pdf" \
+  -F "type=document"
+
+# Pre-written transcript (plain text)
+curl -X POST https://api.faces.ai/v1/faces/FACE_ID/upload \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@transcript.txt" \
+  -F "type=thread"
+```
+
+### Supported file types
+
+| Type | Formats |
+|------|---------|
+| Document | `.txt`, `.pdf` |
+| Thread | `.txt` (structured transcript) |
+| Audio/Video | `.mp3`, `.mp4`, `.wav`, `.m4a`, `.webm`, and more |
+
+Audio and video files are automatically transcribed before compilation. To get the raw transcript without compiling, use the `/transcribe` endpoint instead.
+
+---
+
+## Import from YouTube
+
+Import a public YouTube video — the audio is transcribed and stored as a document:
+
+```bash
+curl -X POST https://api.faces.ai/v1/faces/FACE_ID/import-youtube \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.youtube.com/watch?v=VIDEO_ID"}'
+```
+
+---
+
+## Transcribe audio/video
+
+Transcribe without compiling. Returns raw text and speaker-diarized segments:
+
+```bash
+curl -X POST https://api.faces.ai/v1/faces/FACE_ID/transcribe \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@podcast.mp3"
+```
+
+```json
+{
+  "data": {
+    "text": "Full transcript text...",
+    "segments": [
+      { "speaker": "A", "start": 0.0, "end": 4.2, "text": "Welcome to the show." },
+      { "speaker": "B", "start": 4.5, "end": 8.1, "text": "Thanks for having me." }
+    ]
+  }
+}
+```
+
+Transcription is billed separately from compile quota. See [Billing guide](/guides/billing).
+
+---
+
+## Plan limits
+
+The number of faces you can create depends on your subscription plan:
+
+| Plan | Face limit |
+|------|-----------|
+| Free | 10 |
+| Standard | 100 |
+| Pro | 1,000 |
+
+Attempting to create a face beyond your plan limit returns `403 Forbidden`.

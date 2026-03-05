@@ -1,0 +1,109 @@
+---
+title: Synthetic Faces
+description: Compose personas from boolean expressions over existing faces.
+---
+
+# Synthetic Faces
+
+A synthetic face is defined by a boolean formula over existing faces. Its psychological primitives are assembled on the fly — no separate compilation, no extra training. The formula is evaluated at inference time by taking the union, intersection, or difference of the contributing faces' compiled knowledge.
+
+---
+
+## Formula syntax
+
+| Operator | Meaning |
+|----------|---------|
+| `a \| b` | Union — everything from a and everything from b |
+| `a & b` | Intersection — only what a and b share |
+| `a - b` | Difference — everything from a that is not in b |
+| `a ^ b` | Symmetric difference — everything unique to either a or b |
+
+Parentheses are supported for grouping:
+
+```
+(alice | bob) & mentor
+alice | (expert - academic)
+```
+
+---
+
+## Create a synthetic face
+
+Pass a `formula` instead of uploading documents:
+
+```bash
+curl -X POST https://api.faces.ai/v1/faces \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "alice-and-bob",
+    "formula": "alice | bob"
+  }'
+```
+
+The formula references faces by their `username`. All referenced faces must:
+- Be owned by you
+- Be concrete (non-synthetic) faces
+
+Nesting synthetic faces — referencing a face that itself has a formula — is not supported and returns `422`.
+
+---
+
+## Update the formula
+
+```bash
+curl -X PATCH https://api.faces.ai/v1/faces/FACE_ID \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"formula": "alice & mentor"}'
+```
+
+Changes take effect immediately on the next chat request.
+
+---
+
+## Chat with a synthetic face
+
+Exactly the same as chatting with any face:
+
+```bash
+curl -X POST https://api.faces.ai/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "alice-and-bob",
+    "messages": [{"role": "user", "content": "How do you approach creative problems?"}]
+  }'
+```
+
+---
+
+## Validation rules
+
+- All referenced usernames must be owned by you at create/update time.
+- Referenced faces must be concrete (not synthetic themselves).
+- The formula must be a valid boolean expression using `|`, `&`, `-`, `^`, parentheses, and valid usernames.
+
+Invalid formulas return `422 Unprocessable Entity` with a description of the problem.
+
+---
+
+## How it works
+
+When a chat request arrives for a synthetic face, the profiler service:
+
+1. Evaluates the formula, reading the compiled knowledge graphs for each referenced face.
+2. Applies the boolean operations to produce a merged knowledge set.
+3. Retrieves and ranks the most relevant primitives from the merged set.
+4. Injects them into the system prompt as if they were compiled for a single face.
+
+The result is a coherent persona that blends the source faces according to the formula — without any training or separate compilation step.
+
+---
+
+## Use cases
+
+- **Blended expertise**: `designer | engineer` — draw on both knowledge domains in a single persona.
+- **Constrained character**: `alice & mentor` — only the facets of Alice that overlap with a mentor archetype.
+- **Differenced persona**: `senior-dev - junior-dev` — the characteristics that distinguish a senior developer from a junior one.
+- **A/B testing**: Create `alice | bob` and `alice & bob` to compare unioned vs. intersected personas.

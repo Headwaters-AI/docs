@@ -1,0 +1,149 @@
+---
+title: Chat
+description: Run inference with any face using the OpenAI-compatible chat API.
+---
+
+# Chat
+
+The `/v1/chat/completions` endpoint is OpenAI-compatible. Pass a face username in the `model` field to load that face's compiled persona as the system context.
+
+---
+
+## Basic usage
+
+```bash
+curl -X POST https://api.faces.ai/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "alice",
+    "messages": [
+      {"role": "user", "content": "What matters most to you in your work?"}
+    ]
+  }'
+```
+
+The face's compiled psychological primitives and `basic_facts` are injected automatically into the system prompt. You do not need to manage this context yourself.
+
+---
+
+## Model override syntax
+
+By default, a face uses its configured `default_model`, or the system default if none is set. You can override this per-request:
+
+```
+"model": "alice@gpt-4o-mini"
+"model": "alice@claude-sonnet-4-6"
+"model": "alice@accounts/fireworks/models/llama-v3p1-8b-instruct"
+```
+
+The format is `face-username@model-name`. The model must be in the supported models list.
+
+<Note>
+  Model overrides always use the system API key — no user-stored credentials are required or used.
+</Note>
+
+---
+
+## Streaming
+
+Add `"stream": true` for SSE streaming:
+
+```bash
+curl -X POST https://api.faces.ai/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "alice",
+    "messages": [{"role": "user", "content": "Tell me about your childhood."}],
+    "stream": true
+  }'
+```
+
+The response is a standard OpenAI-format SSE stream (`data: {"choices":[{"delta":{"content":"..."}}]}\n\n`).
+
+---
+
+## Multi-turn conversations
+
+Pass the full message history as you would with any OpenAI-compatible client:
+
+```json
+{
+  "model": "alice",
+  "messages": [
+    {"role": "user", "content": "What city do you live in?"},
+    {"role": "assistant", "content": "I live in Berlin."},
+    {"role": "user", "content": "What neighborhood?"}
+  ]
+}
+```
+
+---
+
+## Supported models
+
+```bash
+curl https://api.faces.ai/v1/models \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns all models available for use in the `model` field override syntax.
+
+---
+
+## OpenAI and Anthropic proxy
+
+Faces also exposes pass-through proxy endpoints for direct OpenAI and Anthropic API access, billed to your Faces account:
+
+```bash
+# OpenAI proxy
+curl -X POST https://api.faces.ai/v1/openai/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
+
+# Anthropic proxy
+curl -X POST https://api.faces.ai/v1/anthropic/messages \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
+```
+
+These endpoints accept the native request format for each provider and forward it transparently.
+
+---
+
+## Using with OpenAI SDK
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="YOUR_API_KEY",
+    base_url="https://api.faces.ai/v1"
+)
+
+response = client.chat.completions.create(
+    model="alice",
+    messages=[{"role": "user", "content": "What matters most to you?"}]
+)
+print(response.choices[0].message.content)
+```
+
+---
+
+## Error codes
+
+| Code | Meaning |
+|------|---------|
+| `402` | Insufficient credits |
+| `404` | Face not found or not owned by you |
+| `422` | Invalid request body |

@@ -1,0 +1,102 @@
+---
+title: Centroids
+description: Face similarity, neighbors, and the geometric structure of compiled faces.
+---
+
+# Centroids
+
+Every compiled face has a **centroid** — a position in a high-dimensional embedding space that summarizes the face's psychological primitives. Centroids enable similarity search: you can find faces that are close to a given face, far from it, or compare multiple faces at once.
+
+---
+
+## Components
+
+A centroid has four named vector components, one per primitive type:
+
+| Component | Covers |
+|-----------|--------|
+| `face` | The aggregate position across all components |
+| `beta` | Values and evaluative stances |
+| `delta` | Reasoning patterns and cognitive tendencies |
+| `epsilon` | Behavioral patterns and characteristic actions |
+
+Each component is embedded independently, so similarity can be measured globally (via `face`) or along a specific dimension.
+
+---
+
+## Compare multiple faces
+
+```bash
+curl "https://api.faces.ai/v1/faces/diff?faces=alice,bob,carol" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns pairwise cosine similarities between the listed faces across all four components. All faces must be owned by you.
+
+```json
+{
+  "data": {
+    "pairs": [
+      {
+        "a": "alice", "b": "bob",
+        "similarity": { "face": 0.71, "beta": 0.68, "delta": 0.82, "epsilon": 0.54 }
+      },
+      {
+        "a": "alice", "b": "carol",
+        "similarity": { "face": 0.43, "beta": 0.39, "delta": 0.51, "epsilon": 0.31 }
+      },
+      {
+        "a": "bob", "b": "carol",
+        "similarity": { "face": 0.38, "beta": 0.42, "delta": 0.29, "epsilon": 0.44 }
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Find similar faces
+
+```bash
+curl "https://api.faces.ai/v1/faces/FACE_ID/neighbors?k=5&component=face&direction=nearest" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Parameters:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `k` | 5 | Number of neighbors to return |
+| `component` | `face` | Which component to search: `face`, `beta`, `delta`, or `epsilon` |
+| `direction` | `nearest` | `nearest` for most similar, `furthest` for most dissimilar |
+
+Returns your owned faces sorted by similarity to the query face, excluding the query face itself.
+
+```json
+{
+  "data": {
+    "neighbors": [
+      { "face_id": "face_xyz", "username": "bob", "similarity": 0.83 },
+      { "face_id": "face_def", "username": "carol", "similarity": 0.71 }
+    ]
+  }
+}
+```
+
+---
+
+## When centroids are updated
+
+The centroid for a face is recalculated each time a sync completes successfully. If a face has never been synced, or if all its documents have been deleted, it has no centroid and is excluded from similarity searches.
+
+[Synthetic faces](/guides/synthetic-faces) do not have pre-computed centroids — they are assembled on the fly from their component faces and are not included in neighbor searches.
+
+---
+
+## Use cases
+
+- **Cluster your library**: find which of your faces are naturally similar or distinct.
+- **Quality check**: after compiling a new face, compare it against others to verify it has a distinct profile.
+- **Blend selection**: before creating a synthetic face, use `diff` to see which source faces have high overlap on the dimensions you care about.
+- **Furthest neighbor**: find the face in your library that is most unlike a given face — useful for contrast and counterpoint in multi-agent setups.
