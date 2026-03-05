@@ -16,13 +16,13 @@
     "links": [
       {
         "label": "Dashboard",
-        "href": "https://faces.ai"
+        "href": "https://faces.sh"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Get started",
-      "href": "https://faces.ai"
+      "href": "https://faces.sh"
     }
   },
   "navigation": {
