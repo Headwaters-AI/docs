@@ -81,6 +81,68 @@ Pass the full message history as you would with any OpenAI-compatible client:
 
 ---
 
+## Face templates
+
+You can reference any face in your messages using `${face-username}` syntax. Each `${...}` token is replaced with the face's display name in your message text, and the referenced face's profile is provided to the model as context. This lets you bring multiple faces into a single prompt.
+
+```bash
+curl -X POST https://api.faces.sh/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "alice@gpt-4o-mini",
+    "messages": [
+      {"role": "user", "content": "You are debating ${bob}. Argue your position on space exploration."}
+    ]
+  }'
+```
+
+Here Alice is the primary persona (system prompt) and `${bob}` is replaced with "Bob" in the message. Bob's profile is automatically injected as additional context so the model knows who Alice is debating.
+
+You can reference as many faces as you need:
+
+```json
+{
+  "model": "alice@gpt-4o-mini",
+  "messages": [
+    {"role": "user", "content": "You are moderating a debate between ${bob} and ${carol}. Summarize their positions."}
+  ]
+}
+```
+
+<Note>
+  If you reference the primary face (the one in the `model` field) with a template — e.g. `model: "alice@gpt-4o-mini"` and `${alice}` in a message — the token is replaced with Alice's display name but no duplicate profile is added, since Alice's full persona is already injected.
+</Note>
+
+### Supported endpoints
+
+Templates work in all proxy endpoints:
+
+| Endpoint | Where templates are scanned |
+|----------|----------------------|
+| `/v1/chat/completions` | `messages[*].content` (string or content blocks) |
+| `/v1/messages` | `messages[*].content` and `system` field |
+| `/v1/responses` | `input` (string or message list) and `instructions` field |
+
+Only `type: "text"` content blocks are scanned — image, tool, and other block types are left untouched.
+
+### Escaping
+
+To include a literal `${...}` without triggering expansion, prefix it with a backslash:
+
+```json
+{"role": "user", "content": "Use the syntax \\${name} to reference a face."}
+```
+
+### Rules
+
+- Referenced usernames must be faces you own.
+- Synthetic faces (those defined by a formula) work in templates.
+- Unknown usernames return `422` with a list of the unrecognized names.
+- Templates are expanded once — profile text is never re-scanned for nested `${...}` tokens.
+
+---
+
 ## Supported models
 
 ```bash
@@ -146,4 +208,4 @@ print(response.choices[0].message.content)
 |------|---------|
 | `402` | Insufficient credits |
 | `404` | Face not found or not owned by you |
-| `422` | Invalid request body |
+| `422` | Invalid request body or unknown face username in `${...}` template |
