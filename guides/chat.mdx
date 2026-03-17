@@ -39,6 +39,8 @@ By default, a face uses its configured `default_model`, or the system default if
 
 The format is `face-username@model-name`. The model must be in the supported models list.
 
+You can also pass a bare model name with no face prefix — e.g. `"model": "gpt-4o-mini"`. This proxies directly to the LLM with no persona injected. See [Face templates](#face-templates) for how to use face profiles without a primary persona.
+
 <Note>
   Model overrides always use the system API key — no user-stored credentials are required or used.
 </Note>
@@ -113,6 +115,24 @@ You can reference as many faces as you need:
 <Note>
   If you reference the primary face (the one in the `model` field) with a template — e.g. `model: "alice@gpt-4o-mini"` and `${alice}` in a message — the token is replaced with Alice's display name but no duplicate profile is added, since Alice's full persona is already injected.
 </Note>
+
+### Templates without a primary face
+
+You can pass a bare model name instead of `face@model`. No persona is injected — the model acts as a standard assistant. Templates still work, so you can inject face profiles as context:
+
+```bash
+curl -X POST https://api.faces.sh/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o-mini",
+    "messages": [
+      {"role": "user", "content": "Compare the worldviews of ${alice} and ${bob}. Where do they agree?"}
+    ]
+  }'
+```
+
+This works on all three endpoints: `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
 
 ### Supported endpoints
 
