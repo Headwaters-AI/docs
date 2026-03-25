@@ -30,13 +30,14 @@ curl https://api.faces.sh/v1/billing/balance \
 
 ## Subscription plans
 
-| Plan | Price | Face limit | Compile quota |
-|------|-------|-----------|---------------|
-| Free | $0 | 10 | 5,000 tokens (never resets) |
-| Standard | $X/mo | 100 | 50,000 tokens / 30 days |
-| Pro | $X/mo | 1,000 | 1,000,000 tokens / 30 days |
+| Plan | Price | Faces | Compile quota | OAuth routing |
+|------|-------|-------|---------------|---------------|
+| Free | $0 | Unlimited | Pay-per-token | — |
+| Connect | $17/mo | Unlimited | 100,000 tokens / 30 days | OpenAI |
 
 Chat usage (token costs) is billed from your credit balance on all plans.
+
+The **Connect** plan also lets you link your OpenAI account via OAuth, routing interview LLM calls through your own ChatGPT subscription at no additional cost. See [Interview billing source](/guides/compile#interviewer-billing-source) for details.
 
 ### Get current subscription
 
@@ -45,11 +46,10 @@ curl https://api.faces.sh/v1/billing/subscription \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-### Upgrade or downgrade
+### Subscribe to Connect
 
 ```bash
-# Start Stripe Checkout session
-curl -X POST "https://api.faces.sh/v1/billing/checkout?plan=standard" \
+curl -X POST "https://api.faces.sh/v1/billing/checkout?plan=connect" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -152,3 +152,29 @@ The markup rate covers infrastructure costs. The exact rate is shown in the pric
 | `balance > 0` | Normal operation |
 | `balance = 0` | Chat requests return `402 Payment Required` |
 | `is_frozen = true` | All requests return `402` regardless of balance |
+
+---
+
+## Compile thread billing errors
+
+When starting or continuing an interview thread, a `402` is returned if no payment source is available. The response body includes structured fields to help the UI display the right action:
+
+```json
+{
+  "detail": {
+    "message": "Connect your OpenAI account, or add credits to start an interview.",
+    "error_code": "compile_payment_required",
+    "needs_oauth": true,
+    "needs_credits": true,
+    "plan": "connect"
+  }
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `needs_oauth` | User should link their OpenAI account (Connect plan only) |
+| `needs_credits` | User should top up their credit balance |
+| `plan` | The user's current plan |
+
+A `502` is returned if the upstream LLM provider fails. This replaces the previous behavior where LLM failures were silently returned as a fake assistant message with status `200`.

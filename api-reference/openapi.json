@@ -4435,6 +4435,30 @@
           "tokens_limit": {
             "type": "integer",
             "title": "Tokens Limit"
+          },
+          "tokens_charged": {
+            "type": "integer",
+            "title": "Tokens Charged",
+            "description": "Compile tokens charged for this specific message (0 for oauth and credits billing).",
+            "default": 0
+          },
+          "interviewer_billing_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oauth",
+                  "compile",
+                  "credits"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interviewer Billing Source",
+            "description": "Which billing path was used for this request.",
+            "default": null
           }
         },
         "type": "object",
@@ -4455,6 +4479,24 @@
           "message": {
             "type": "string",
             "title": "Message"
+          },
+          "interviewer_billing_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oauth",
+                  "compile",
+                  "credits"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interviewer Billing Source",
+            "description": "Which account to debit for interviewer LLM calls. Default (null): auto-fallback oauth \u2192 compile \u2192 credits.",
+            "default": null
           }
         },
         "type": "object",
@@ -4472,6 +4514,24 @@
           "model": {
             "type": "string",
             "title": "Model"
+          },
+          "interviewer_billing_source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "oauth",
+                  "compile",
+                  "credits"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interviewer Billing Source",
+            "description": "Which account to debit for interviewer LLM calls. Default (null): auto-fallback oauth \u2192 compile \u2192 credits.",
+            "default": null
           }
         },
         "type": "object",
