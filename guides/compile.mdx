@@ -23,28 +23,70 @@ A **thread** is a conversation transcript — a direct record of how the face ex
 
 ## Prepare → Sync workflow
 
-Uploading a file does not immediately compile it. Files are staged as **documents** or **threads** in a pending state. Trigger compilation explicitly with the sync endpoint:
+Compiling a document is a two-step async process: **prepare** (extract knowledge from text) then **sync** (write to the knowledge graph).
+
+### Step 1: Prepare
+
+Prepare runs LLM extraction on the document in chunks. It returns `202` immediately and processes in the background:
 
 ```bash
-# Upload a document
-curl -X POST https://api.faces.sh/v1/faces/FACE_ID/upload \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "file=@interview.txt" \
-  -F "type=document"
-
-# Trigger compilation
-curl -X POST https://api.faces.sh/v1/faces/FACE_ID/sync \
+curl -X POST https://api.faces.sh/v1/compile/documents/DOC_ID/prepare \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Compilation is asynchronous. Check the face's sync status:
+```json
+{
+  "document_id": "abc123",
+  "model": "face-username",
+  "label": "My Document",
+  "status": "processing",
+  "chunks_total": 12
+}
+```
+
+### Step 2: Poll for progress
+
+Poll `GET /v1/compile/documents/DOC_ID` to track chunk-by-chunk progress:
 
 ```bash
-curl https://api.faces.sh/v1/faces/FACE_ID \
+curl https://api.faces.sh/v1/compile/documents/DOC_ID \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-The `sync_status` field will be `"syncing"` while compilation is in progress and `"synced"` when complete.
+```json
+{
+  "document_id": "abc123",
+  "prepare_status": "processing",
+  "chunks_total": 12,
+  "chunks_completed": 7,
+  "current_counts": {
+    "epsilon": 5,
+    "beta": 8,
+    "delta": 3,
+    "alpha": 14
+  }
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `prepare_status` | `null` → `"processing"` → `"ready"` or `"failed"` |
+| `chunks_total` | Total chunks the document was split into |
+| `chunks_completed` | Chunks processed so far |
+| `current_counts` | Running count of extracted components (epsilon=facts, beta=beliefs, delta=types, alpha=entities) |
+
+Poll every 2–3 seconds. When `prepare_status` is `"ready"`, move to sync.
+
+### Step 3: Sync
+
+Once prepare is ready, sync writes the extracted knowledge to the face's graph:
+
+```bash
+curl -X POST https://api.faces.sh/v1/compile/documents/DOC_ID/sync \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Sync returns compile statistics (epsilons/betas/deltas/alphas processed) and charges your compile quota.
 
 ---
 
