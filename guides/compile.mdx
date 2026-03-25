@@ -68,15 +68,63 @@ Deleting a compiled document removes its contribution from the face's knowledge 
 
 ---
 
+## Interview threads
+
+An **interview thread** is a live conversation where an AI interviewer asks questions to build the face's persona in real time. Threads are created and advanced via the compile threads API:
+
+```bash
+# Start a new interview thread
+curl -X POST https://api.faces.sh/v1/compile/threads \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "FACE_USERNAME", "label": "My Interview"}'
+
+# Send a message
+curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/messages \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "I always test my software thoroughly before shipping."}'
+
+# Sync to knowledge graph
+curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/sync \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Interviewer billing source
+
+Interview threads use an LLM to generate interviewer questions. How this is paid for depends on your plan and can be controlled per-request:
+
+| Source | Who pays | When used |
+|--------|----------|-----------|
+| `oauth` | Your ChatGPT subscription (free) | Connect plan with linked OpenAI account |
+| `compile` | Monthly compile token quota | Connect plan with remaining quota |
+| `credits` | API credit balance | Any plan with positive balance |
+
+**Default behavior (auto):** The system tries each source in order — `oauth` → `compile` → `credits` — and uses the first one available.
+
+**Explicit override:** Pass `interviewer_billing_source` in the request body to force a specific source:
+
+```bash
+curl -X POST https://api.faces.sh/v1/compile/threads \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "FACE_USERNAME", "label": "Interview", "interviewer_billing_source": "compile"}'
+```
+
+The response includes `interviewer_billing_source` (which path was used) and `tokens_charged` (compile tokens consumed for this message), so the UI can update usage in real time.
+
+If no payment source is available, the endpoint returns `402` with a structured error indicating whether the user needs to connect their OpenAI account, add credits, or both.
+
+---
+
 ## Compile quota
 
 Each plan includes a monthly compile quota measured in tokens:
 
 | Plan | Quota | Reset |
 |------|-------|-------|
-| Free | 5,000 tokens | Never |
-| Standard | 50,000 tokens | Every 30 days |
-| Pro | 1,000,000 tokens | Every 30 days |
+| Free | Pay-per-token | — |
+| Connect | 100,000 tokens | Every 30 days |
 
 Quota is shared across all faces in your account. Check your current usage:
 
