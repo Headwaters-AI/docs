@@ -113,6 +113,40 @@ Deleting a compiled document removes its contribution from the face's knowledge 
 
 ---
 
+## Uploading threads
+
+A **thread** is a multi-speaker conversation transcript. Upload a text file with `Speaker Name: message` format:
+
+```
+Interviewer: Tell me about yourself.
+Troy: I'm an inventor living in the Parisian countryside.
+Interviewer: What drives your work?
+Troy: The conviction that technology should serve human flourishing.
+```
+
+Upload with `type=thread` and `face_speaker` to specify which speaker is the face:
+
+```bash
+curl -X POST "https://api.faces.sh/v1/faces/FACE_USERNAME/upload?type=thread&face_speaker=Troy" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@interview.txt"
+```
+
+The `face_speaker` parameter maps that speaker to `role=user` (the face's voice). All other speakers become `role=assistant`. If omitted, the first speaker is assumed to be the face.
+
+Once uploaded, sync the thread to compile it into the knowledge graph:
+
+```bash
+curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/sync \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Audio/video threads
+
+Audio and video files uploaded with `type=thread` are transcribed with speaker diarization. Speakers are labeled automatically (Speaker A, Speaker B, etc.). Use `face_speaker=A` to map the correct speaker.
+
+---
+
 ## Interview threads
 
 An **interview thread** is a live conversation where an AI interviewer asks questions to build the face's persona in real time. Threads are created and advanced via the compile threads API:
