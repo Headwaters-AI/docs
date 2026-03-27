@@ -68,8 +68,10 @@ curl https://api.faces.sh/v1/compile/documents/DOC_ID \
 
 ```
 null → "preparing" → "syncing" → "synced"
-                 ↘              ↘
-                "failed"      "failed"
+                 ↘
+               "stalled" → (re-trigger /make) → "preparing" → ...
+                 ↘
+               "failed"
 ```
 
 | Status | Meaning |
@@ -78,7 +80,10 @@ null → "preparing" → "syncing" → "synced"
 | `"preparing"` | Extracting knowledge from text chunks |
 | `"syncing"` | Writing extracted knowledge to the graph |
 | `"synced"` | Compilation complete — stop polling |
-| `"failed"` | Error occurred — stop polling, check `error` field |
+| `"stalled"` | Temporary API failure — progress saved, call `/make` again to resume from where it left off |
+| `"failed"` | Unrecoverable error — stop polling |
+
+Each chunk is retried automatically with exponential backoff before the compile stalls. A stalled compile preserves all progress — re-triggering `/make` resumes from the last completed chunk, not from scratch.
 
 ### Progress fields
 
@@ -134,12 +139,21 @@ curl -X POST "https://api.faces.sh/v1/faces/FACE_USERNAME/upload?type=thread&fac
 
 The `face_speaker` parameter maps that speaker to `role=user` (the face's voice). All other speakers become `role=assistant`. If omitted, the first speaker is assumed to be the face.
 
-Once uploaded, sync the thread to compile it into the knowledge graph:
+Once uploaded, compile the thread with `/make` (fire-and-forget — chunked extraction + sync in one step):
 
 ```bash
-curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/sync \
+curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/make \
   -H "Authorization: Bearer YOUR_API_KEY"
+# Returns 202 with status="preparing" and chunks_total
+
+# Poll for progress
+curl https://api.faces.sh/v1/compile/threads/THREAD_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+# Response includes prepare_status, chunks_completed, chunks_total, current_counts
+# Status transitions: preparing → syncing → synced (or stalled/failed)
 ```
+
+Thread compilation uses the same status transitions, progress fields, and retry behavior as documents. If a compile stalls, call `/make` again to resume from the last completed chunk.
 
 ### Audio/video threads
 
@@ -164,7 +178,7 @@ curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/messages \
   -H "Content-Type: application/json" \
   -d '{"message": "I believe in testing software thoroughly."}'
 
-# Sync to knowledge graph
+# Compile to knowledge graph (sync for live threads, make for uploaded)
 curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/sync \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

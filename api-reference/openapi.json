@@ -2087,6 +2087,69 @@
         }
       }
     },
+    "/v1/compile/threads/{thread_id}/make": {
+      "post": {
+        "tags": [
+          "Compile",
+          "Compile - Threads"
+        ],
+        "summary": "Compile Thread (Make)",
+        "description": "Compile a thread end-to-end (chunked extraction + sync) in one call.\n\nReturns 202 immediately. Poll GET /compile/threads/{id} for progress.\nStatus transitions: null → preparing → syncing → synced (or stalled/failed).\n\nIf the thread is in \"stalled\" state from a previous attempt, calling /make resumes from the last completed chunk.\n\nReturns 409 if a compilation is already in progress.",
+        "operationId": "make_compile_thread_v1_compile_threads__thread_id__make_post",
+        "parameters": [
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Thread Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Compilation started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompileThreadMakeResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Compilation already in progress"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/compile/threads/{thread_id}": {
       "get": {
         "tags": [
@@ -2693,6 +2756,69 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/compile/documents/{doc_id}/make": {
+      "post": {
+        "tags": [
+          "Compile",
+          "Compile - Documents"
+        ],
+        "summary": "Compile Document (Make)",
+        "description": "Compile a document end-to-end (prepare + sync) in one call.\n\nReturns 202 immediately. Poll GET /compile/documents/{id} for progress.\nStatus transitions: null → preparing → syncing → synced (or stalled/failed).\n\nIf the document is in \"stalled\" state from a previous attempt, calling /make resumes from the last completed chunk.\n\nReturns 409 if a compilation is already in progress.",
+        "operationId": "make_compile_document_v1_compile_documents__doc_id__make_post",
+        "parameters": [
+          {
+            "name": "doc_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Doc Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Compilation started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompileDocumentPrepareResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Compilation already in progress"
           },
           "422": {
             "description": "Validation Error",
@@ -4540,6 +4666,31 @@
           "model"
         ],
         "title": "CompileThreadStartRequest"
+      },
+      "CompileThreadMakeResponse": {
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "title": "Thread Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Always \"preparing\" on success"
+          },
+          "chunks_total": {
+            "type": "integer",
+            "title": "Chunks Total",
+            "description": "Estimated number of chunks the thread will be split into"
+          }
+        },
+        "type": "object",
+        "required": [
+          "thread_id",
+          "status",
+          "chunks_total"
+        ],
+        "title": "CompileThreadMakeResponse"
       },
       "CompileThreadSyncResponse": {
         "properties": {
