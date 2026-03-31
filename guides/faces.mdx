@@ -5,7 +5,7 @@ description: Create, configure, and manage your face personas.
 
 # Faces
 
-A face is a named persona — a compiled character that can be used as the system personality for any chat completion. Faces are identified by a unique `username` within your account.
+A face is a named persona — a compiled character that can be used as the system personality for any chat completion. Faces are identified by a unique `alias` within your account.
 
 ---
 
@@ -16,12 +16,13 @@ curl -X POST https://api.faces.sh/v1/faces \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "alice",
-    "basic_facts": "Alice is a product designer in her 30s based in Berlin."
+    "alias": "alice",
+    "name": "Alice",
+    "basic_facts": {"age": "30", "location": "Berlin"}
   }'
 ```
 
-### Username rules
+### Alias rules
 
 - Lowercase letters, numbers, and dashes only: `^[a-z0-9-]+$`
 - Maximum 32 characters
@@ -29,7 +30,11 @@ curl -X POST https://api.faces.sh/v1/faces \
 
 ### `basic_facts`
 
-A free-text string injected verbatim into the system prompt on every chat request. Use it for facts that should always be present regardless of compiled context: name, role, location, key relationships.
+A key:value object injected into the system prompt on every chat request. Use it for facts that should always be present regardless of compiled context: name, role, location, key relationships.
+
+```json
+{"age": "30", "location": "Berlin", "role": "product designer"}
+```
 
 ---
 
@@ -45,7 +50,7 @@ curl https://api.faces.sh/v1/faces \
 ## Get a face
 
 ```bash
-curl https://api.faces.sh/v1/faces/FACE_ID \
+curl https://api.faces.sh/v1/faces/FACE_ALIAS \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -54,11 +59,11 @@ curl https://api.faces.sh/v1/faces/FACE_ID \
 ## Update a face
 
 ```bash
-curl -X PATCH https://api.faces.sh/v1/faces/FACE_ID \
+curl -X PATCH https://api.faces.sh/v1/faces/FACE_ALIAS \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "basic_facts": "Alice is a senior product designer and manager at a fintech company.",
+    "basic_facts": {"age": "30", "location": "Berlin", "role": "senior product designer"},
     "default_model": "gpt-4o-mini"
   }'
 ```
@@ -72,7 +77,7 @@ Sets the LLM used when no model is specified in the chat request. Accepts any mo
 ## Delete a face
 
 ```bash
-curl -X DELETE https://api.faces.sh/v1/faces/FACE_ID \
+curl -X DELETE https://api.faces.sh/v1/faces/FACE_ALIAS \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -86,13 +91,13 @@ Upload documents, transcripts, or threads to be compiled into the face.
 
 ```bash
 # Text or PDF document
-curl -X POST https://api.faces.sh/v1/faces/FACE_ID/upload \
+curl -X POST https://api.faces.sh/v1/faces/alice/upload \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@interview.pdf" \
   -F "type=document"
 
 # Pre-written transcript (plain text)
-curl -X POST https://api.faces.sh/v1/faces/FACE_ID/upload \
+curl -X POST https://api.faces.sh/v1/faces/alice/upload \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@transcript.txt" \
   -F "type=thread"
@@ -110,12 +115,12 @@ Audio and video files are automatically transcribed before compilation. To get t
 
 ---
 
-## Import from YouTube
+## Import
 
-Import a public YouTube video — the audio is transcribed and stored as a document:
+Import a public URL — the content is fetched, transcribed if needed, and stored as a document:
 
 ```bash
-curl -X POST https://api.faces.sh/v1/faces/FACE_ID/import-youtube \
+curl -X POST https://api.faces.sh/v1/faces/alice/import \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://www.youtube.com/watch?v=VIDEO_ID"}'
@@ -128,7 +133,7 @@ curl -X POST https://api.faces.sh/v1/faces/FACE_ID/import-youtube \
 Transcribe without compiling. Returns raw text and speaker-diarized segments:
 
 ```bash
-curl -X POST https://api.faces.sh/v1/faces/FACE_ID/transcribe \
+curl -X POST https://api.faces.sh/v1/faces/alice/transcribe \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@podcast.mp3"
 ```
@@ -155,8 +160,7 @@ The number of faces you can create depends on your subscription plan:
 
 | Plan | Face limit |
 |------|-----------|
-| Free | 10 |
-| Standard | 100 |
-| Pro | 1,000 |
+| Free | Unlimited |
+| Connect | Unlimited |
 
-Attempting to create a face beyond your plan limit returns `403 Forbidden`.
+Faces are unlimited on all plans.

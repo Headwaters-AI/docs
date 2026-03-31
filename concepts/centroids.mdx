@@ -11,14 +11,14 @@ Every compiled face has a **centroid** — a position in a high-dimensional embe
 
 ## Components
 
-A centroid has four named vector components, one per primitive type:
+A centroid exposes three component vectors plus an aggregate, available for similarity search:
 
-| Component | Covers |
-|-----------|--------|
+| Component | Description |
+|-----------|-------------|
 | `face` | The aggregate position across all components |
-| `beta` | Values and evaluative stances |
-| `delta` | Reasoning patterns and cognitive tendencies |
-| `epsilon` | Behavioral patterns and characteristic actions |
+| `beta` | Captures the most dynamic and expressive patterns of the persona |
+| `delta` | Represents intermediate cognitive structures — more stable than beta, more active than epsilon |
+| `epsilon` | Reflects the deepest, most fundamental and enduring foundations of the persona |
 
 Each component is embedded independently, so similarity can be measured globally (via `face`) or along a specific dimension.
 
@@ -31,7 +31,7 @@ curl "https://api.faces.sh/v1/faces/diff?faces=alice,bob,carol" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Returns pairwise cosine similarities between the listed faces across all four components. All faces must be owned by you.
+Returns pairwise cosine similarities between the listed faces across all components. All faces must be owned by you.
 
 ```json
 {
@@ -59,7 +59,7 @@ Returns pairwise cosine similarities between the listed faces across all four co
 ## Find similar faces
 
 ```bash
-curl "https://api.faces.sh/v1/faces/FACE_ID/neighbors?k=5&component=face&direction=nearest" \
+curl "https://api.faces.sh/v1/faces/FACE_ALIAS/neighbors?k=5&component=face&direction=nearest" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -77,8 +77,8 @@ Returns your owned faces sorted by similarity to the query face, excluding the q
 {
   "data": {
     "neighbors": [
-      { "face_id": "face_xyz", "username": "bob", "similarity": 0.83 },
-      { "face_id": "face_def", "username": "carol", "similarity": 0.71 }
+      { "alias": "bob", "similarity": 0.83 },
+      { "alias": "carol", "similarity": 0.71 }
     ]
   }
 }

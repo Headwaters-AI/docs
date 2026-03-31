@@ -1,11 +1,17 @@
 ---
 title: Chat
-description: Run inference with any face using the OpenAI-compatible chat API.
+description: Run inference with any face using the chat API.
 ---
 
 # Chat
 
-The `/v1/chat/completions` endpoint is OpenAI-compatible. Pass a face username in the `model` field to load that face's compiled persona as the system context.
+The Faces API exposes three chat endpoints. Pass a face alias in the `model` field to load that face's compiled persona as the system context.
+
+| Endpoint | Format |
+|----------|--------|
+| `/v1/chat/completions` | OpenAI chat completions |
+| `/v1/messages` | Anthropic messages |
+| `/v1/responses` | OpenAI responses |
 
 ---
 
@@ -29,7 +35,7 @@ The face's compiled psychological primitives and `basic_facts` are injected auto
 
 ## Model override syntax
 
-By default, a face uses its configured `default_model`, or the system default if none is set. You can override this per-request:
+By default, a face uses its configured `default_model`, or the system default if none is set. You can override this per-request using the `alias@llm-model` format:
 
 ```
 "model": "alice@gpt-4o-mini"
@@ -37,7 +43,7 @@ By default, a face uses its configured `default_model`, or the system default if
 "model": "alice@accounts/fireworks/models/llama-v3p1-8b-instruct"
 ```
 
-The format is `face-username@model-name`. The model must be in the supported models list.
+The format is `alias@llm-model`. The model must be in the supported models list.
 
 You can also pass a bare model name with no face prefix — e.g. `"model": "gpt-4o-mini"`. This proxies directly to the LLM with no persona injected. See [Face templates](#face-templates) for how to use face profiles without a primary persona.
 
@@ -85,7 +91,7 @@ Pass the full message history as you would with any OpenAI-compatible client:
 
 ## Face templates
 
-You can reference any face in your messages using `${face-username}` syntax. Each `${...}` token is replaced with the face's display name in your message text, and the referenced face's profile is provided to the model as context. This lets you bring multiple faces into a single prompt.
+You can reference any face in your messages using `${face-alias}` syntax. Each `${...}` token is replaced with the face's display name in your message text, and the referenced face's profile is provided to the model as context. This lets you bring multiple faces into a single prompt.
 
 ```bash
 curl -X POST https://api.faces.sh/v1/chat/completions \
@@ -118,7 +124,7 @@ You can reference as many faces as you need:
 
 ### Templates without a primary face
 
-You can pass a bare model name instead of `face@model`. No persona is injected — the model acts as a standard assistant. Templates still work, so you can inject face profiles as context:
+You can pass a bare model name instead of `alias@model`. No persona is injected — the model acts as a standard assistant. Templates still work, so you can inject face profiles as context:
 
 ```bash
 curl -X POST https://api.faces.sh/v1/chat/completions \
@@ -136,7 +142,7 @@ This works on all three endpoints: `/v1/chat/completions`, `/v1/messages`, and `
 
 ### Supported endpoints
 
-Templates work in all proxy endpoints:
+Templates work in all endpoints:
 
 | Endpoint | Where templates are scanned |
 |----------|----------------------|
@@ -156,9 +162,9 @@ To include a literal `${...}` without triggering expansion, prefix it with a bac
 
 ### Rules
 
-- Referenced usernames must be faces you own.
+- Referenced aliases must be faces you own.
 - Synthetic faces (those defined by a formula) work in templates.
-- Unknown usernames return `422` with a list of the unrecognized names.
+- Unknown aliases return `422` with a list of the unrecognized names.
 - Templates are expanded once — profile text is never re-scanned for nested `${...}` tokens.
 
 ---
@@ -171,35 +177,6 @@ curl https://api.faces.sh/v1/models \
 ```
 
 Returns all models available for use in the `model` field override syntax.
-
----
-
-## OpenAI and Anthropic proxy
-
-Faces also exposes pass-through proxy endpoints for direct OpenAI and Anthropic API access, billed to your Faces account:
-
-```bash
-# OpenAI proxy
-curl -X POST https://api.faces.sh/v1/openai/chat/completions \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
-
-# Anthropic proxy
-curl -X POST https://api.faces.sh/v1/anthropic/messages \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "claude-sonnet-4-6",
-    "max_tokens": 1024,
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
-```
-
-These endpoints accept the native request format for each provider and forward it transparently.
 
 ---
 
@@ -228,4 +205,4 @@ print(response.choices[0].message.content)
 |------|---------|
 | `402` | Insufficient credits |
 | `404` | Face not found or not owned by you |
-| `422` | Invalid request body or unknown face username in `${...}` template |
+| `422` | Invalid request body or unknown face alias in `${...}` template |

@@ -36,12 +36,12 @@ curl -X POST https://api.faces.sh/v1/faces \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "alice-and-bob",
+    "alias": "alice-and-bob",
     "formula": "alice | bob"
   }'
 ```
 
-The formula references faces by their `username`. All referenced faces must:
+The formula references faces by their `alias`. All referenced faces must:
 - Be owned by you
 - Be concrete (non-synthetic) faces
 
@@ -52,7 +52,7 @@ Nesting synthetic faces — referencing a face that itself has a formula — is 
 ## Update the formula
 
 ```bash
-curl -X PATCH https://api.faces.sh/v1/faces/FACE_ID \
+curl -X PATCH https://api.faces.sh/v1/faces/FACE_ALIAS \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"formula": "alice & mentor"}'
@@ -80,9 +80,9 @@ curl -X POST https://api.faces.sh/v1/chat/completions \
 
 ## Validation rules
 
-- All referenced usernames must be owned by you at create/update time.
+- All referenced aliases must be owned by you at create/update time.
 - Referenced faces must be concrete (not synthetic themselves).
-- The formula must be a valid boolean expression using `|`, `&`, `-`, `^`, parentheses, and valid usernames.
+- The formula must be a valid boolean expression using `|`, `&`, `-`, `^`, parentheses, and valid aliases.
 
 Invalid formulas return `422 Unprocessable Entity` with a description of the problem.
 

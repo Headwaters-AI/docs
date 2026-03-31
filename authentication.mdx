@@ -15,19 +15,28 @@ Authorization: Bearer <token>
 
 ## JWT tokens
 
-JWTs are issued by the `/auth/verify` endpoint after wallet signature verification. They expire after a short window and are suitable for immediate use in client-side flows or testing.
+JWTs are issued by the `/auth/login` endpoint after email/password authentication. They expire after a short window and are suitable for immediate use in client-side flows or testing.
+
+### Register
 
 ```bash
-# Get a nonce
-curl https://api.faces.sh/auth/nonce/0xYOUR_ADDRESS
-
-# Sign with your wallet and verify
-curl -X POST https://api.faces.sh/auth/verify \
+curl -X POST https://api.faces.sh/auth/register-email \
   -H "Content-Type: application/json" \
   -d '{
-    "address": "0xYOUR_ADDRESS",
-    "signature": "0xSIG",
-    "nonce": "NONCE"
+    "name": "Alice",
+    "email": "alice@example.com",
+    "password": "your-secure-password"
+  }'
+```
+
+### Login
+
+```bash
+curl -X POST https://api.faces.sh/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "alice@example.com",
+    "password": "your-secure-password"
   }'
 ```
 
@@ -51,7 +60,7 @@ API keys are the recommended method for production applications. They do not exp
 
 ```bash
 curl -X POST https://api.faces.sh/v1/api-keys \
-  -H "Authorization: Bearer YOUR_JWT_OR_KEY" \
+  -H "Authorization: Bearer YOUR_JWT" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "production",
