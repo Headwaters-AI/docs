@@ -13,12 +13,7 @@ A compiled face is more than a system prompt. It is a structured representation 
 
 When you upload source texts and trigger a sync, the compiler reads each document or thread and produces a set of **psychological primitives**: discrete, self-contained statements about the persona expressed in a constrained vocabulary and grammar.
 
-These primitives are organized into four named components:
-
-- **Alpha** — core self-concept and identity statements
-- **Beta** — values, preferences, and evaluative stances
-- **Delta** — patterns of thought, reasoning style, and cognitive tendencies
-- **Epsilon** — behavioral patterns, habits, and characteristic actions
+Compiled primitives are organized into four named components — epsilon, delta, alpha, beta — ordered from the most fundamental and stable structures to the most dynamic and expressive. The naming draws loosely on the frequency bands of neuroscience: lower frequencies represent deeper, more enduring cognitive foundations, while higher frequencies capture patterns that are more active and context-dependent.
 
 Each component is stored separately in the knowledge graph and has its own embedding in the centroid index. This structure allows the system to retrieve the most contextually relevant primitives for a given conversation, rather than injecting everything at once.
 
@@ -26,7 +21,7 @@ Each component is stored separately in the knowledge graph and has its own embed
 
 ## Why fewer tokens
 
-Raw source texts are verbose. A 10,000-token interview might contain 80% context and repetition, with the actual characterizing content concentrated in 1,500–2,000 tokens of distinctive statements.
+Raw source texts are verbose. A 10,000-token interview might contain 80% context and repetition, with the actual characterizing content concentrated in 1,500-2,000 tokens of distinctive statements.
 
 Compiled primitives strip the scaffolding. What gets injected at inference time is not a summary or excerpt — it is the minimal formal expression of the persona's distinctive qualities, ranked by relevance to the current conversation context.
 
@@ -56,7 +51,7 @@ Biographies written by others, dry CVs, and factual reports produce weaker primi
 
 ## Relation to `basic_facts`
 
-`basic_facts` is a raw string injected verbatim into every system prompt. It is not compiled — it bypasses the psychological primitives entirely. Use it for stable, factual context (name, role, current situation) that should always be present regardless of what the conversation is about.
+`basic_facts` is a key:value object injected into every system prompt. It is not compiled — it bypasses the psychological primitives entirely. Use it for stable, factual context (name, role, current situation) that should always be present regardless of what the conversation is about.
 
 The compiled components are retrieved selectively based on the conversation. `basic_facts` is always present.
 

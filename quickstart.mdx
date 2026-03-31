@@ -20,23 +20,19 @@ This guide walks you through the full workflow: register an account, create a fa
   If you already have an account, skip to step 2.
 </Note>
 
-Registration via wallet (EIP-191 signing) or invite code:
+Register with email and password:
 
 ```bash
-# Step 1: get a nonce for your wallet address
-curl https://api.faces.sh/auth/nonce/0xYOUR_WALLET_ADDRESS
-
-# Step 2: sign the nonce with your wallet and verify
-curl -X POST https://api.faces.sh/auth/verify \
+curl -X POST https://api.faces.sh/auth/register-email \
   -H "Content-Type: application/json" \
   -d '{
-    "address": "0xYOUR_WALLET_ADDRESS",
-    "signature": "0xYOUR_SIGNATURE",
-    "nonce": "NONCE_FROM_STEP_1"
+    "name": "Alice",
+    "email": "alice@example.com",
+    "password": "your-secure-password"
   }'
 ```
 
-The response contains a JWT `access_token`. Use it as a Bearer token for subsequent requests, or create an API key (step 2).
+The response contains a JWT `access_token` and a Stripe `checkout_url`. Open the checkout URL to activate your account, then use the JWT as a Bearer token for subsequent requests, or create an API key (step 2).
 
 ---
 
@@ -70,17 +66,18 @@ curl -X POST https://api.faces.sh/v1/faces \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "alice",
-    "basic_facts": "Alice is a product designer in her 30s based in Berlin."
+    "alias": "alice",
+    "name": "Alice",
+    "basic_facts": {"age": "30", "location": "Berlin"}
   }'
 ```
 
 ```json
 {
   "data": {
-    "id": "face_abc123",
-    "username": "alice",
-    "basic_facts": "Alice is a product designer in her 30s based in Berlin.",
+    "alias": "alice",
+    "name": "Alice",
+    "basic_facts": {"age": "30", "location": "Berlin"},
     "default_model": null,
     "created_at": "2026-03-05T00:00:00Z"
   }
@@ -94,39 +91,47 @@ curl -X POST https://api.faces.sh/v1/faces \
 Upload a plain-text file that describes or characterizes the face:
 
 ```bash
-curl -X POST https://api.faces.sh/v1/faces/face_abc123/upload \
+curl -X POST https://api.faces.sh/v1/faces/alice/upload \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@alice_journal.txt" \
   -F "type=document"
+```
+
+```json
+{
+  "data": {
+    "document_id": "doc_abc123"
+  }
+}
 ```
 
 You can also upload PDF files, audio, or video — see [Faces guide](/guides/faces).
 
 ---
 
-## 5. Compile (sync)
+## 5. Compile
 
-Trigger compilation of all pending source texts:
+Trigger compilation of the uploaded document:
 
 ```bash
-curl -X POST https://api.faces.sh/v1/faces/face_abc123/sync \
+curl -X POST https://api.faces.sh/v1/compile/documents/doc_abc123/make \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Compilation is asynchronous. Poll the face status or wait a few seconds before chatting:
+Compilation is asynchronous (returns `202`). Poll the document status until it completes:
 
 ```bash
-curl https://api.faces.sh/v1/faces/face_abc123 \
+curl https://api.faces.sh/v1/compile/documents/doc_abc123 \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-When `sync_status` is `"synced"`, the face is ready.
+When `prepare_status` is `"synced"`, the face is ready.
 
 ---
 
 ## 6. Chat
 
-Use the OpenAI-compatible endpoint. Pass the face username in the `model` field:
+Use the OpenAI-compatible endpoint. Pass the face alias in the `model` field:
 
 ```bash
 curl -X POST https://api.faces.sh/v1/chat/completions \

@@ -7,7 +7,7 @@ description: Programmable personas for AI agents — as nuanced as real humans, 
 
 Faces are compiled soul documents. They give AI agents programmable personas as nuanced as real humans using fewer tokens.
 
-Source texts — interviews, essays, journals, transcripts, chat histories — are compiled into plaintext psychological primitives (alpha, beta, delta, epsilon components) that define a coherent and complex persona. At inference time, the relevant components are retrieved and injected into the system prompt in a compressed form that conveys far more character per token than raw text.
+Source texts — interviews, essays, journals, transcripts, chat histories — are compiled into plaintext psychological primitives organized into four frequency bands of cognitive structure (epsilon, delta, alpha, beta) that define a coherent and complex persona. At inference time, the relevant components are retrieved and injected into the system prompt in a compressed form that conveys far more character per token than raw text.
 
 ## What you can do
 
@@ -19,14 +19,14 @@ Source texts — interviews, essays, journals, transcripts, chat histories — a
     Compile source documents and threads into psychological primitives.
   </Card>
   <Card title="Chat" icon="message" href="/guides/chat">
-    Run inference with any face using the OpenAI-compatible chat API.
+    Run inference with any face using the chat API.
   </Card>
 </CardGroup>
 
 ## Key concepts
 
-- **Face** — A named persona with compiled psychological primitives. Can be a person, character, or synthetic blend of multiple faces.
-- **Compile** — The process that transforms uploaded source texts into structured alpha/beta/delta/epsilon components.
+- **Face** — A named persona identified by its alias, with compiled psychological primitives. Can be a person, character, or synthetic blend of multiple faces.
+- **Compile** — The process that transforms uploaded source texts into four named components loosely inspired by brainwave frequencies, ordered from most fundamental to most dynamic.
 - **Psychological primitives** — The minimal formal language our compiler produces. Compact, retrievable, and composable.
 - **Synthetic faces** — Boolean combinations of existing faces (`alice | bob`, `expert & mentor`, etc.) composed on the fly without extra training.
 

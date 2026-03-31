@@ -33,7 +33,7 @@ curl -X POST https://api.faces.sh/v1/compile/documents/DOC_ID/make \
 ```json
 {
   "document_id": "abc123",
-  "model": "face-username",
+  "alias": "alice",
   "label": "My Document",
   "status": "preparing",
   "chunks_total": 12
@@ -42,7 +42,7 @@ curl -X POST https://api.faces.sh/v1/compile/documents/DOC_ID/make \
 
 ### Polling for progress
 
-Poll `GET /v1/compile/documents/DOC_ID` every 2–3 seconds to track progress:
+Poll `GET /v1/compile/documents/DOC_ID` every 2-3 seconds to track progress:
 
 ```bash
 curl https://api.faces.sh/v1/compile/documents/DOC_ID \
@@ -52,6 +52,7 @@ curl https://api.faces.sh/v1/compile/documents/DOC_ID \
 ```json
 {
   "document_id": "abc123",
+  "alias": "alice",
   "prepare_status": "preparing",
   "chunks_total": 12,
   "chunks_completed": 7,
@@ -101,7 +102,7 @@ Billing (compile quota or credit deduction) is handled automatically when sync c
 ## Listing documents
 
 ```bash
-curl https://api.faces.sh/v1/faces/FACE_ID/documents \
+curl "https://api.faces.sh/v1/compile/documents?alias=FACE_ALIAS" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -110,7 +111,7 @@ curl https://api.faces.sh/v1/faces/FACE_ID/documents \
 ## Deleting a document
 
 ```bash
-curl -X DELETE https://api.faces.sh/v1/faces/FACE_ID/documents/DOCUMENT_ID \
+curl -X DELETE https://api.faces.sh/v1/compile/documents/DOC_ID \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -132,7 +133,7 @@ Troy: The conviction that technology should serve human flourishing.
 Upload with `type=thread` and `face_speaker` to specify which speaker is the face:
 
 ```bash
-curl -X POST "https://api.faces.sh/v1/faces/FACE_USERNAME/upload?type=thread&face_speaker=Troy" \
+curl -X POST "https://api.faces.sh/v1/faces/FACE_ALIAS/upload?type=thread&face_speaker=Troy" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@interview.txt"
 ```
@@ -170,7 +171,7 @@ An **interview thread** is a live conversation where an AI interviewer asks ques
 curl -X POST https://api.faces.sh/v1/compile/threads \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model": "FACE_USERNAME", "label": "My Interview"}'
+  -d '{"alias": "FACE_ALIAS", "label": "My Interview"}'
 
 # Send a message
 curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/messages \
@@ -201,7 +202,7 @@ Interview threads use an LLM to generate interviewer questions. How this is paid
 curl -X POST https://api.faces.sh/v1/compile/threads \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model": "FACE_USERNAME", "label": "Interview", "interviewer_billing_source": "compile"}'
+  -d '{"alias": "FACE_ALIAS", "label": "Interview", "interviewer_billing_source": "compile"}'
 ```
 
 The response includes `interviewer_billing_source` (which path was used) and `tokens_charged` (compile tokens consumed for this message), so the UI can update usage in real time.
@@ -229,14 +230,13 @@ curl https://api.faces.sh/v1/billing/compile-quota \
 ```json
 {
   "data": {
-    "plan": "standard",
+    "plan": "connect",
     "tokens_used": 12400,
-    "tokens_limit": 50000,
+    "tokens_limit": 100000,
     "resets_at": "2026-04-05T00:00:00Z",
     "faces": [
       {
-        "face_id": "face_abc123",
-        "username": "alice",
+        "alias": "alice",
         "tokens_in_graph": 8200,
         "tokens_charged_period": 8200,
         "tokens_charged_alltime": 21600
@@ -260,7 +260,7 @@ If your credit balance is also exhausted, compilation stops and returns `402`.
 
 Text and PDF files can be uploaded directly. Audio and video files are transcribed before compilation — the transcription counts against your credit balance, not your compile quota.
 
-For batch imports, consider using the [YouTube import endpoint](/guides/faces#import-from-youtube) or the upload endpoint in a loop.
+For batch imports, consider using the [import endpoint](/guides/faces#import) or the upload endpoint in a loop.
 
 ---
 
