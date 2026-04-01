@@ -111,19 +111,23 @@ curl -X POST https://api.faces.sh/v1/faces/alice/upload \
 | Thread | `.txt` (structured transcript) |
 | Audio/Video | `.mp3`, `.mp4`, `.wav`, `.m4a`, `.webm`, and more |
 
-Audio and video files are automatically transcribed before compilation. To get the raw transcript without compiling, use the `/transcribe` endpoint instead.
+Audio and video files are transcribed asynchronously — the upload returns **202** with `prepare_status: "transcribing"`. Poll the thread or document GET endpoint until `prepare_status` becomes `null` (ready to review) or `"failed"`. Text and PDF uploads return 200 synchronously.
+
+To get the raw transcript without creating a compile thread/document, use the `/transcribe` endpoint instead.
 
 ---
 
 ## Import
 
-Import a public URL — the content is fetched, transcribed if needed, and stored as a document:
+Import a public URL — the content is fetched, transcribed if needed, and stored as a document or thread. Returns **202** immediately; transcription runs in the background.
 
 ```bash
 curl -X POST https://api.faces.sh/v1/faces/alice/import \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://www.youtube.com/watch?v=VIDEO_ID"}'
+# Returns 202 with prepare_status="transcribing"
+# Poll GET /v1/compile/documents/{id} or /v1/compile/threads/{id} until ready
 ```
 
 ---

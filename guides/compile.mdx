@@ -158,7 +158,27 @@ Thread compilation uses the same status transitions, progress fields, and retry 
 
 ### Audio/video threads
 
-Audio and video files uploaded with `type=thread` are transcribed with speaker diarization. Speakers are labeled automatically (Speaker A, Speaker B, etc.). Use `face_speaker=A` to map the correct speaker.
+Audio and video files uploaded with `type=thread` are transcribed automatically with speaker diarization. The upload returns **202 immediately** — transcription runs in the background.
+
+Poll `GET /v1/compile/threads/THREAD_ID` until `prepare_status` changes from `"transcribing"` to `null` (ready to review). Speakers are labeled automatically (Speaker A, Speaker B, etc.). Use `face_speaker=A` to map the correct speaker.
+
+```bash
+# Upload audio/video — returns 202 with prepare_status="transcribing"
+curl -X POST "https://api.faces.sh/v1/faces/FACE_ALIAS/upload?type=thread&face_speaker=A" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@interview.mp3"
+
+# Poll until transcription completes
+curl https://api.faces.sh/v1/compile/threads/THREAD_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+# prepare_status: "transcribing" → null (ready) or "failed"
+
+# Review the transcript, then compile
+curl -X POST https://api.faces.sh/v1/compile/threads/THREAD_ID/make \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Text file uploads (`.txt`) are processed synchronously and return 200 with the full transcript immediately.
 
 ---
 
