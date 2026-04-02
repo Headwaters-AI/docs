@@ -69,18 +69,19 @@ curl https://api.faces.sh/v1/compile/documents/DOC_ID \
 
 ```
 null → "preparing" → "syncing" → "synced"
-                 ↘
-               "stalled" → (re-trigger /make) → "preparing" → ...
-                 ↘
-               "failed"
+            ↕              ↘
+         "paused"        "stalled" → (re-trigger /make) → "preparing" → ...
+                           ↘
+                         "failed"
 ```
 
 | Status | Meaning |
 |--------|---------|
-| `null` | Document created but not yet compiled |
+| `null` | Document created but not yet compiled (or reset) |
 | `"preparing"` | Extracting knowledge from text chunks |
 | `"syncing"` | Writing extracted knowledge to the graph |
 | `"synced"` | Compilation complete — stop polling |
+| `"paused"` | Compilation paused by user — progress preserved, call `/make` to resume |
 | `"stalled"` | Temporary API failure — progress saved, call `/make` again to resume from where it left off |
 | `"failed"` | Unrecoverable error — stop polling |
 
@@ -96,6 +97,36 @@ Each chunk is retried automatically with exponential backoff before the compile 
 | `current_counts` | Running count of extracted components: `{epsilon, beta, delta, alpha}` |
 
 Billing (compile quota or credit deduction) is handled automatically when sync completes.
+
+### Controlling compilation
+
+| Action | Endpoint | Effect |
+|--------|----------|--------|
+| Pause | `POST /compile/threads/{id}/pause` | Stop after current chunk. Progress preserved. Resume with `/make`. |
+| Reset | `POST /compile/threads/{id}/reset` | Wipe all extraction progress. Source data preserved. Fresh `/make`. |
+| Delete | `DELETE /compile/threads/{id}` | Remove thread entirely. |
+
+Pause and reset work on documents too (`/compile/documents/{id}/pause` and `/reset`).
+
+### Lightweight polling
+
+For polling during compilation, use `?status_only=true` to get a lightweight response (~170 bytes) without messages or content:
+
+```bash
+curl "https://api.faces.sh/v1/compile/threads/THREAD_ID?status_only=true" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{
+  "id": "thread-uuid",
+  "alias": "face-alias",
+  "prepare_status": "preparing",
+  "chunks_total": 25,
+  "chunks_completed": 17,
+  "current_counts": {"epsilon": 5, "beta": 8, "delta": 3, "alpha": 14}
+}
+```
 
 ---
 
