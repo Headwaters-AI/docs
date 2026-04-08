@@ -36,6 +36,29 @@ A key:value object injected into the system prompt on every chat request. Use it
 {"age": "30", "location": "Berlin", "role": "product designer"}
 ```
 
+Only keys from the [supported attributes list](#list-supported-attributes) are accepted. Unsupported keys are dropped and a `warnings` array is included in the response indicating which keys were removed.
+
+---
+
+## List supported attributes
+
+```bash
+curl https://api.faces.sh/v1/faces/attributes
+```
+
+Returns the categorized list of accepted `basic_facts` keys. No authentication required.
+
+```json
+{
+  "object": "list",
+  "data": [
+    {"name": "Age & Birth", "facts": ["age", "age_range", "birth_date", ...]},
+    {"name": "Current Location", "facts": ["address", "location", "city", ...]},
+    ...
+  ]
+}
+```
+
 ---
 
 ## List faces

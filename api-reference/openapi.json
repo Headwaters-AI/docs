@@ -1035,6 +1035,54 @@
         }
       }
     },
+    "/v1/faces/attributes": {
+      "get": {
+        "tags": [
+          "Faces"
+        ],
+        "summary": "List Supported Attributes",
+        "description": "Return the categorized list of accepted basic_facts attribute keys. No authentication required.",
+        "operationId": "list_supported_attributes_v1_faces_attributes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "default": "list"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Category name"
+                          },
+                          "facts": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Accepted attribute keys in this category"
+                          }
+                        },
+                        "required": ["name", "facts"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/faces/stats": {
       "get": {
         "tags": [
@@ -5198,6 +5246,21 @@
               }
             ],
             "title": "Formula"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warnings",
+            "description": "Present when unsupported basic_facts keys were dropped during create or update."
           }
         },
         "type": "object",
