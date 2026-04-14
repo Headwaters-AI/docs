@@ -1,6 +1,6 @@
 ---
 title: Authentication
-description: JWT and API key authentication, budget caps, and allowlists.
+description: JWT and API key authentication, budget caps, and face/model restrictions.
 ---
 
 # Authentication
@@ -25,7 +25,8 @@ curl -X POST https://api.faces.sh/auth/register-email \
   -d '{
     "name": "Alice",
     "email": "alice@example.com",
-    "password": "your-secure-password"
+    "password": "your-secure-password",
+    "username": "alice"
   }'
 ```
 
@@ -43,49 +44,83 @@ curl -X POST https://api.faces.sh/auth/login \
 Response:
 ```json
 {
+  "success": true,
   "data": {
-    "access_token": "eyJ...",
-    "token_type": "bearer"
+    "token": "eyJ...",
+    "user_id": "311d4676-effb-4b20-..."
   }
 }
 ```
+
+### Refresh
+
+```bash
+curl -X POST https://api.faces.sh/auth/refresh \
+  -H "Authorization: Bearer YOUR_JWT"
+```
+
+Returns a fresh JWT without requiring re-login.
 
 ---
 
 ## API keys
 
-API keys are the recommended method for production applications. They do not expire and can be scoped with budget caps and domain allowlists.
+API keys are the recommended method for production applications. They support optional budget caps, expiration, and restrictions on which faces and models can be used.
 
 ### Create an API key
 
 ```bash
-curl -X POST https://api.faces.sh/v1/api-keys \
+curl -X POST https://api.faces.sh/v1/auth/api-keys \
   -H "Authorization: Bearer YOUR_JWT" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "production",
     "budget_usd": 50.00,
-    "allowlist": ["yourapp.com", "localhost"]
+    "allowed_face_ids": ["alice", "bob"],
+    "allowed_llm_models": ["gpt-4o-mini"]
   }'
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Human-readable label |
-| `budget_usd` | float (optional) | Hard spend cap in USD. Requests fail with `402` once exhausted. |
-| `allowlist` | array (optional) | Allowed `Origin` or `Referer` hostnames. Empty = unrestricted. |
+| `budget_usd` | float (optional) | Hard spend cap in USD. Requests fail with `402` once exhausted. Null = unlimited. |
+| `expires_in_days` | int (optional) | Number of days until the key expires. Null = never expires. |
+| `scopes` | array (optional) | Permission scopes. Default: `["v1:*"]` (full access). |
+| `allowed_face_ids` | array (optional) | Restrict the key to specific face aliases. Null = all owned faces. |
+| `allowed_llm_models` | array (optional) | Restrict the key to specific LLM models. Null = all models. |
+
+The response includes the full API key **once** — it cannot be retrieved again:
+
+```json
+{
+  "id": "a1b2c3d4-...",
+  "key": "sk-faces-abc123...",
+  "key_prefix": "sk-faces-abc12345",
+  "name": "production"
+}
+```
 
 ### List API keys
 
 ```bash
-curl https://api.faces.sh/v1/api-keys \
+curl https://api.faces.sh/v1/auth/api-keys \
   -H "Authorization: Bearer YOUR_KEY"
+```
+
+### Update an API key
+
+```bash
+curl -X PATCH https://api.faces.sh/v1/auth/api-keys/KEY_ID \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "renamed-key" }'
 ```
 
 ### Revoke an API key
 
 ```bash
-curl -X DELETE https://api.faces.sh/v1/api-keys/KEY_ID \
+curl -X DELETE https://api.faces.sh/v1/auth/api-keys/KEY_ID \
   -H "Authorization: Bearer YOUR_KEY"
 ```
 
@@ -106,17 +141,23 @@ Top up credits via the [billing API](/guides/billing) or the dashboard.
 
 ---
 
-## Allowlists
+## Face and model restrictions
 
-The `allowlist` field restricts which origins can use the key. This is useful for browser-facing API keys that should not be usable from other domains.
+The `allowed_face_ids` field restricts which faces can be used with a key. Pass face aliases (not UUIDs):
 
 ```json
-{ "allowlist": ["myapp.com", "staging.myapp.com"] }
+{ "allowed_face_ids": ["alice", "bob"] }
 ```
 
-Requests with an `Origin` or `Referer` not in the list are rejected with `403 Forbidden`.
+The `allowed_llm_models` field restricts which LLM models can be used:
 
-An empty or null allowlist allows all origins — appropriate for server-side keys.
+```json
+{ "allowed_llm_models": ["gpt-4o-mini", "claude-sonnet-4-20250514"] }
+```
+
+Requests using a face or model not in the allowed list are rejected with `403 Forbidden`.
+
+Null or omitted fields allow all faces/models — appropriate for unrestricted keys.
 
 ---
 
@@ -126,4 +167,4 @@ An empty or null allowlist allows all origins — appropriate for server-side ke
 |------|---------|
 | `401` | Missing or invalid token |
 | `402` | Insufficient credits |
-| `403` | Origin not in allowlist, or permission denied |
+| `403` | Face/model not allowed, or permission denied |

@@ -28,18 +28,19 @@ curl -X POST https://api.faces.sh/auth/register-email \
   -d '{
     "name": "Alice",
     "email": "alice@example.com",
-    "password": "your-secure-password"
+    "password": "your-secure-password",
+    "username": "alice"
   }'
 ```
 
-The response contains a JWT `access_token` and a Stripe `checkout_url`. Open the checkout URL to activate your account, then use the JWT as a Bearer token for subsequent requests, or create an API key (step 2).
+The response contains a JWT `token` and a `user_id`. Use the JWT as a Bearer token for subsequent requests, or create an API key (step 2).
 
 ---
 
 ## 2. Create an API key
 
 ```bash
-curl -X POST https://api.faces.sh/v1/api-keys \
+curl -X POST https://api.faces.sh/v1/auth/api-keys \
   -H "Authorization: Bearer YOUR_JWT" \
   -H "Content-Type: application/json" \
   -d '{"name": "my-app"}'
@@ -47,11 +48,10 @@ curl -X POST https://api.faces.sh/v1/api-keys \
 
 ```json
 {
-  "data": {
-    "key": "sk-faces-...",
-    "name": "my-app",
-    "created_at": "2026-03-05T00:00:00Z"
-  }
+  "id": "a1b2c3d4-...",
+  "key": "sk-faces-...",
+  "key_prefix": "sk-faces-abc12345",
+  "name": "my-app"
 }
 ```
 
@@ -74,13 +74,14 @@ curl -X POST https://api.faces.sh/v1/faces \
 
 ```json
 {
-  "data": {
-    "alias": "alice",
-    "name": "Alice",
-    "basic_facts": {"age": "30", "location": "Berlin"},
-    "default_model": null,
-    "created_at": "2026-03-05T00:00:00Z"
-  }
+  "alias": "alice",
+  "object": "face",
+  "name": "Alice",
+  "basic_facts": {
+    "age": {"value": "30", "status": "stated", "identification": "user-provided"},
+    "location": {"value": "Berlin", "status": "stated", "identification": "user-provided"}
+  },
+  "component_counts": null
 }
 ```
 
