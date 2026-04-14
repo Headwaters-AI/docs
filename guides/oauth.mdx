@@ -1,0 +1,90 @@
+---
+title: OAuth Connections
+description: Connect your OpenAI account for compile interviews on the Connect plan.
+---
+
+# OAuth Connections
+
+Users on the **Connect plan** can link their OpenAI account to run compile interviews using their own API subscription, bypassing system credits.
+
+---
+
+## List connected providers
+
+```bash
+curl https://api.faces.sh/v1/oauth \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+```json
+[
+  {
+    "provider": "openai",
+    "connected": true,
+    "connected_at": "2026-03-15T10:30:00Z"
+  }
+]
+```
+
+---
+
+## Connect OpenAI
+
+The OAuth flow uses a browser redirect. First, get the authorization URL:
+
+```bash
+curl https://api.faces.sh/v1/oauth/openai/authorize \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+```json
+{
+  "authorize_url": "https://chatgpt.com/authorize?client_id=...&redirect_uri=..."
+}
+```
+
+Open `authorize_url` in a browser. After approving, you'll be redirected back with an authorization code. The callback endpoint handles the token exchange automatically.
+
+<Note>
+  OAuth is only available on the Connect plan. Free and Standard plan users will receive `403 Forbidden`.
+</Note>
+
+---
+
+## Disconnect a provider
+
+```bash
+curl -X DELETE https://api.faces.sh/v1/oauth/openai \
+  -H "Authorization: Bearer YOUR_KEY"
+```
+
+```json
+{
+  "detail": "Disconnected openai"
+}
+```
+
+---
+
+## How OAuth affects billing
+
+When an OAuth connection is active, compile interviews automatically use your connected account instead of system credits. The billing priority is:
+
+1. **OAuth** (Connect plan with active connection) — uses your OpenAI subscription
+2. **Compile quota** (Standard/Pro plans) — uses included monthly tokens
+3. **API credits** — pay-per-use from your credit balance
+
+You can override this by passing `interviewer_billing_source` when starting a compile thread:
+
+```bash
+curl -X POST https://api.faces.sh/v1/compile/threads \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alias": "alice",
+    "label": "Interview",
+    "interviewer_billing_source": "credits"
+  }'
+```
+
+Valid values: `"oauth"`, `"compile"`, `"credits"`.

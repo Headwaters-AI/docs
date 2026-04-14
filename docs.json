@@ -41,7 +41,8 @@
               "guides/chat",
               "guides/compile",
               "guides/synthetic-faces",
-              "guides/billing"
+              "guides/billing",
+              "guides/oauth"
             ]
           },
           {

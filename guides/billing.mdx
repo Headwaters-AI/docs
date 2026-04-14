@@ -131,6 +131,41 @@ Returns the current pricing table for all supported models, including per-millio
 
 ---
 
+## Usage history
+
+```bash
+curl https://api.faces.sh/v1/billing/usage \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns a breakdown of token usage and costs. Supports query parameters:
+- `start_date` / `end_date` — filter by date range
+- `group_by` — group results by `llm_model`, `api_key_id`, or `model_username` (face alias)
+
+## Invoices
+
+```bash
+curl https://api.faces.sh/v1/billing/invoices \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns a list of top-up transactions with amounts and Stripe receipt URLs.
+
+## Compile overflow
+
+Allow compilation to continue past the quota limit, billing excess tokens to your credit balance:
+
+```bash
+curl -X PATCH https://api.faces.sh/v1/billing/compile-overflow \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"allow_overflow": true}'
+```
+
+When enabled, compilation continues past quota using credits. When disabled, compilation stops at the quota limit.
+
+---
+
 ## How chat costs are calculated
 
 Each chat completion deducts from your credit balance:
