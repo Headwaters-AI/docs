@@ -1,11 +1,11 @@
 ---
 title: OAuth Connections
-description: Connect your OpenAI account for free chat routing on the Connect plan.
+description: Connect your OpenAI account for free inference on the Connect plan.
 ---
 
 # OAuth Connections
 
-Users on the **Connect plan** can link their OpenAI account to route eligible chat requests through their ChatGPT subscription at no additional cost.
+Users on the **Connect plan** can link their OpenAI account to route all inference — both chat and compile interviews — through their ChatGPT subscription at no additional cost.
 
 ---
 
@@ -68,19 +68,21 @@ curl -X DELETE https://api.faces.sh/v1/oauth/openai \
 
 ## How OAuth affects billing
 
-OAuth routing applies to **chat requests only** (not compile interviews). When you send a chat request via `/v1/responses` with an eligible model (e.g., `gpt-5.4`), the API automatically tries your OAuth connection first:
+OAuth routing applies to **all inference** — both chat and compile interviews. When you send a request with an eligible model, the API automatically tries your OAuth connection first:
 
 1. **OAuth** (Connect plan with active connection) — free, uses your ChatGPT subscription
-2. **System key fallback** — if OAuth fails, uses your credit balance
+2. **Credits fallback** — if OAuth fails or is unavailable, uses your credit balance at standard per-token rates
 
-To prevent unexpected charges from the fallback, pass `"oauth_only": true` in the request body. See [Chat guide — OAuth routing](/guides/chat#oauth-routing-connect-plan) for details.
+To prevent unexpected charges from the fallback, pass `"oauth_only": true` in the request body for chat, or `"interviewer_billing_source": "oauth"` for compile threads. If OAuth can't be used, the request returns an error instead of falling back.
 
-**Compile interviews** always use the system model and your compile quota (1M tokens/month on Connect plan). OAuth is not used for compilation.
+### Response headers (chat endpoints)
 
-### Response headers
-
-Check `X-Faces-Provider` on any chat response to see which path was used:
+Check `X-Faces-Provider` on chat responses to see which path was used:
 - `openai-codex` — OAuth was used (free)
 - `openai` — system key was used (charged to credits)
 
 The `X-Faces-Cost-USD` header shows the exact cost.
+
+### Compile threads
+
+Compile interviews use OAuth automatically for Connect plan users. The `interviewer_billing_source` field in the response shows which path was used (`"oauth"` or `"credits"`).
