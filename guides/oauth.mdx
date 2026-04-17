@@ -73,15 +73,49 @@ OAuth routing applies to **all inference** — both chat and compile interviews.
 1. **OAuth** (Connect plan with active connection) — free, uses your ChatGPT subscription
 2. **Credits fallback** — if OAuth fails or is unavailable, uses your credit balance at standard per-token rates
 
-To prevent unexpected charges from the fallback, pass `"oauth_only": true` in the request body for chat, or `"interviewer_billing_source": "oauth"` for compile threads. If OAuth can't be used, the request returns an error instead of falling back.
+### Controlling fallback
 
-### Response headers (chat endpoints)
+By default, the `api_fallback` user preference is `false` — requests fail instead of falling back to paid system keys. You can change this via:
 
-Check `X-Faces-Provider` on chat responses to see which path was used:
-- `openai-codex` — OAuth was used (free)
-- `openai` — system key was used (charged to credits)
+```bash
+curl -X PATCH https://api.faces.sh/v1/user/preferences \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"api_fallback": true}'
+```
 
-The `X-Faces-Cost-USD` header shows the exact cost.
+You can also override per-request with `"oauth_only": true` (chat) or `"interviewer_billing_source": "oauth"` (compile threads). Explicit request params always take precedence over stored preferences.
+
+### OAuth failure responses
+
+When OAuth fails and fallback is disabled, the API returns:
+
+```json
+HTTP 422
+{
+  "error": "oauth_rejected",
+  "detail": "Your OpenAI account rejected the request: ...",
+  "upstream_status": 400,
+  "fallback_available": true
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `error` | Always `"oauth_rejected"` — stable code for client switching |
+| `detail` | Raw error message from upstream |
+| `upstream_status` | HTTP status from OpenAI (400 = model issue, 401 = token revoked, 429 = rate limit) |
+| `fallback_available` | `true` if the user has credit balance for retry |
+
+### Response headers
+
+All chat proxy responses include:
+
+| Header | Description |
+|--------|-------------|
+| `X-Faces-Provider` | `"openai-codex"` (OAuth, free) or `"openai"` (system key, charged) |
+| `X-Faces-Cost-USD` | Cost charged for this request |
+| `X-Faces-Routed-Endpoint` | Present when `/chat/completions` auto-routes: `"/v1/responses"` or `"/v1/messages"` |
 
 ### Compile threads
 

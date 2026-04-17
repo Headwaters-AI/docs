@@ -830,6 +830,114 @@
                 }
             }
         },
+        "/v1/user/preferences": {
+            "get": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Get User Preferences",
+                "description": "Return user preferences (api_fallback, etc.).",
+                "operationId": "get_user_preferences_v1_user_preferences_get",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserPreferencesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "Account"
+                ],
+                "summary": "Update User Preferences",
+                "description": "Update user preferences.",
+                "operationId": "update_user_preferences_v1_user_preferences_patch",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserPreferencesPatchRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserPreferencesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/auth/api-keys": {
             "post": {
                 "tags": [
@@ -8377,6 +8485,58 @@
                 ],
                 "title": "UsageRow",
                 "description": "One row in a usage GROUP BY result."
+            },
+            "UserPreferencesPatchRequest": {
+                "properties": {
+                    "api_fallback": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Api Fallback"
+                    },
+                    "default_model": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Default Model"
+                    }
+                },
+                "type": "object",
+                "title": "UserPreferencesPatchRequest"
+            },
+            "UserPreferencesResponse": {
+                "properties": {
+                    "api_fallback": {
+                        "type": "boolean",
+                        "title": "Api Fallback"
+                    },
+                    "default_model": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Default Model"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "api_fallback"
+                ],
+                "title": "UserPreferencesResponse"
             },
             "UtteranceObject": {
                 "properties": {
