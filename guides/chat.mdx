@@ -189,7 +189,7 @@ curl -X PATCH https://api.faces.sh/v1/user/preferences \
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `default_model` | string | Default LLM model inherited by newly created faces. Pass `""` to clear. |
+| `default_model` | string | Default LLM model inherited by newly created faces. Must be a valid model from `/v1/models`. |
 | `api_fallback` | bool | Allow fallback to paid system keys when OAuth fails (default: `false`). |
 
 Read current preferences:
