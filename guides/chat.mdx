@@ -173,6 +173,34 @@ To include a literal `${...}` without triggering expansion, prefix it with a bac
 
 ---
 
+## User preferences
+
+Set account-level defaults via the preferences endpoint:
+
+```bash
+curl -X PATCH https://api.faces.sh/v1/user/preferences \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "default_model": "gpt-5.4",
+    "api_fallback": true
+  }'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `default_model` | string | Default LLM model inherited by newly created faces. Pass `""` to clear. |
+| `api_fallback` | bool | Allow fallback to paid system keys when OAuth fails (default: `false`). |
+
+Read current preferences:
+
+```bash
+curl https://api.faces.sh/v1/user/preferences \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+---
+
 ## Supported models
 
 ```bash
