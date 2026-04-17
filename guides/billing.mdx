@@ -30,16 +30,14 @@ curl https://api.faces.sh/v1/billing/balance \
 
 ## Subscription plans
 
-| Plan | Price | Faces | Compile quota | OAuth chat routing |
-|------|-------|-------|---------------|-------------------|
-| Free | $0 | Unlimited | Pay-per-token | — |
-| Connect | $17/mo | Unlimited | 1,000,000 tokens / 30 days | OpenAI |
+| Plan | Price | Faces | OAuth routing |
+|------|-------|-------|---------------|
+| Free | $0 | Unlimited | — |
+| Connect | $17/mo | Unlimited | OpenAI (chat + compile) |
 
-Chat usage (token costs) is billed from your credit balance on all plans.
+On the **Free** plan, all inference (chat and compile) is billed per-token from your credit balance.
 
-The **Connect** plan also lets you link your OpenAI account via OAuth, routing eligible chat requests through your ChatGPT subscription at no additional cost. See [OAuth connections](/guides/oauth) for details.
-
-Compile interviews always use the system model — OAuth is not used for compilation.
+On the **Connect** plan, you link your OpenAI account via OAuth. All inference — both chat and compile interviews — routes through your ChatGPT subscription at no additional cost. If OAuth is unavailable (e.g., you hit OpenAI's limits), requests fall back to your credit balance at the same per-token rates as the Free plan. See [OAuth connections](/guides/oauth) for details.
 
 ### Get current subscription
 
