@@ -13,6 +13,10 @@ The Faces API exposes three chat endpoints. Pass a face alias in the `model` fie
 | `/v1/messages` | Anthropic messages |
 | `/v1/responses` | OpenAI responses |
 
+<Tip>
+  **Auto-routing:** You can send any model to any endpoint. The API automatically converts the request format and routes to the correct upstream. For example, sending `gpt-5.4` to `/v1/chat/completions` auto-routes to the Responses API, and sending `claude-sonnet-4-6` auto-routes to Anthropic Messages.
+</Tip>
+
 ---
 
 ## Basic usage
@@ -196,6 +200,38 @@ response = client.chat.completions.create(
 )
 print(response.choices[0].message.content)
 ```
+
+---
+
+## OAuth routing (Connect plan)
+
+Connect-plan users with a linked OpenAI account get certain models routed through their ChatGPT subscription at no cost. When you request a model like `gpt-5.4` via `/v1/responses`, the API automatically tries the Codex OAuth endpoint first. If OAuth is unavailable or fails, it falls back to the system API key (which charges your credit balance).
+
+To prevent unexpected charges, pass `"oauth_only": true` in the request body:
+
+```bash
+curl -X POST https://api.faces.sh/v1/responses \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "alice@gpt-5.4",
+    "input": [{"role": "user", "content": "Hi!"}],
+    "oauth_only": true
+  }'
+```
+
+When `oauth_only` is true and OAuth is unavailable, the request fails with an error instead of falling back to the paid path.
+
+### Response headers
+
+All proxy responses include these headers:
+
+| Header | Example | Description |
+|--------|---------|-------------|
+| `X-Faces-Provider` | `openai-codex` or `openai` | Which provider actually served the request |
+| `X-Faces-Cost-USD` | `0.00` or `0.0035` | Cost charged to your account for this request |
+
+These let your client know whether OAuth was used (cost = 0) or the system key was used (cost > 0).
 
 ---
 
