@@ -1870,7 +1870,7 @@
                     "Models"
                 ],
                 "summary": "List Supported Models",
-                "description": "Returns all supported underlying LLM models with pricing.\n\nPublic endpoint \u2014 no auth required.\nOpenAI-compatible envelope: {\"object\": \"list\", \"data\": [...]}\n\nModels with provider=\"openai_oauth\" are the same models available free of\ncharge for connect-plan subscribers who have linked their ChatGPT account.\nThese always require endpoint=\"/v1/responses\".",
+                "description": "Returns all supported underlying LLM models with pricing.\n\nPublic endpoint \u2014 no auth required.\nOpenAI-compatible envelope: {\"object\": \"list\", \"data\": [...]}\n\nModels with provider=\"openai_oauth\" are the same models available free of\ncharge for connect-plan subscribers who have linked their ChatGPT account.",
                 "operationId": "list_supported_models_v1_models_get",
                 "responses": {
                     "200": {
@@ -4089,7 +4089,7 @@
                     "Proxy"
                 ],
                 "summary": "Proxy Openai Responses",
-                "description": "OpenAI Responses API transparent proxy.\n\nDrop-in replacement for https://api.openai.com/v1/responses.\nPoint your OpenAI client at Faces's base URL, swap the API key,\nand set model to \"iam_username@gpt-5.4\".\n\nConnect-plan users with a linked ChatGPT account get routed through\ntheir own ChatGPT Plus/Pro subscription via the Codex endpoint for\ngpt-5.x models (billing skipped \u2014 user pays via their subscription).",
+                "description": "OpenAI Responses API transparent proxy.\n\nDrop-in replacement for https://api.openai.com/v1/responses.\nPoint your OpenAI client at Faces's base URL, swap the API key,\nand set model to \"iam_username@gpt-5.4\".\n\nConnect-plan users with a linked ChatGPT account get routed through\ntheir own ChatGPT Plus/Pro subscription via the Codex endpoint for\ngpt-5.x models (billing skipped \u2014 user pays via their subscription).\n\n_body_override: internal param used by chat.py auto-routing (not exposed to HTTP).",
                 "operationId": "proxy_openai_responses_v1_responses_post",
                 "parameters": [
                     {
@@ -4109,6 +4109,17 @@
                         }
                     }
                 ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "additionalProperties": true,
+                                "title": " Body Override"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Successful Response",

@@ -1,11 +1,11 @@
 ---
 title: OAuth Connections
-description: Connect your OpenAI account for compile interviews on the Connect plan.
+description: Connect your OpenAI account for free chat routing on the Connect plan.
 ---
 
 # OAuth Connections
 
-Users on the **Connect plan** can link their OpenAI account to run compile interviews using their own API subscription, bypassing system credits.
+Users on the **Connect plan** can link their OpenAI account to route eligible chat requests through their ChatGPT subscription at no additional cost.
 
 ---
 
@@ -68,23 +68,19 @@ curl -X DELETE https://api.faces.sh/v1/oauth/openai \
 
 ## How OAuth affects billing
 
-When an OAuth connection is active, compile interviews automatically use your connected account instead of system credits. The billing priority is:
+OAuth routing applies to **chat requests only** (not compile interviews). When you send a chat request via `/v1/responses` with an eligible model (e.g., `gpt-5.4`), the API automatically tries your OAuth connection first:
 
-1. **OAuth** (Connect plan with active connection) — uses your OpenAI subscription
-2. **Compile quota** (Standard/Pro plans) — uses included monthly tokens
-3. **API credits** — pay-per-use from your credit balance
+1. **OAuth** (Connect plan with active connection) — free, uses your ChatGPT subscription
+2. **System key fallback** — if OAuth fails, uses your credit balance
 
-You can override this by passing `interviewer_billing_source` when starting a compile thread:
+To prevent unexpected charges from the fallback, pass `"oauth_only": true` in the request body. See [Chat guide — OAuth routing](/guides/chat#oauth-routing-connect-plan) for details.
 
-```bash
-curl -X POST https://api.faces.sh/v1/compile/threads \
-  -H "Authorization: Bearer YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "alias": "alice",
-    "label": "Interview",
-    "interviewer_billing_source": "credits"
-  }'
-```
+**Compile interviews** always use the system model and your compile quota (1M tokens/month on Connect plan). OAuth is not used for compilation.
 
-Valid values: `"oauth"`, `"compile"`, `"credits"`.
+### Response headers
+
+Check `X-Faces-Provider` on any chat response to see which path was used:
+- `openai-codex` — OAuth was used (free)
+- `openai` — system key was used (charged to credits)
+
+The `X-Faces-Cost-USD` header shows the exact cost.
