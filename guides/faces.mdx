@@ -18,6 +18,7 @@ curl -X POST https://api.faces.sh/v1/faces \
   -d '{
     "alias": "alice",
     "name": "Alice",
+    "description": "Senior product designer based in Berlin.",
     "basic_facts": {"age": "30", "location": "Berlin"}
   }'
 ```
@@ -27,6 +28,14 @@ curl -X POST https://api.faces.sh/v1/faces \
 - Lowercase letters, numbers, and dashes only: `^[a-z0-9-]+$`
 - Maximum 32 characters
 - Must be unique within your account
+
+### `description`
+
+Optional plain-text bio (up to **1500 characters**, roughly 200–250 words). Useful for a human-readable summary of who this face is — not used by the model at inference time, but surfaced in listings and dashboards.
+
+- Plain text. HTML is stored verbatim; if you render it, escape it yourself.
+- Server strips ASCII control characters and normalizes line endings.
+- Send `"description": ""` to clear it. Omit the field on PATCH to leave it unchanged.
 
 ### `basic_facts`
 
@@ -68,12 +77,61 @@ curl https://api.faces.sh/v1/faces \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+Each face item always includes `description`. By default, `tags` and `teams` are returned as `null` — opt in with `?include=tags,teams` (repeatable or comma-separated):
+
+```bash
+# Include tag and team enrichment on every item
+curl "https://api.faces.sh/v1/faces?include=tags,teams" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "alias": "alice",
+      "uid": "...",
+      "description": "Senior product designer based in Berlin.",
+      "tags": ["client:acme", "status:active"],
+      "teams": [
+        {"id": "...", "name": "Platform Engineering"}
+      ],
+      "default_model": "gpt-4o-mini",
+      "...": "..."
+    }
+  ]
+}
+```
+
+The list endpoint also accepts two filter parameters that compose:
+
+- `?tag=` — repeatable. Multiple tags use **AND** (face must carry every listed tag). Values are lowercased before match.
+- `?team_id=` — repeatable. Multiple team_ids use **OR** (face must be a member of *any* listed team).
+
+The two combine as `(tag1 AND tag2) ∩ (team1 OR team2)`:
+
+```bash
+# Faces tagged client:acme that are members of either team T1 or team T2
+curl "https://api.faces.sh/v1/faces?tag=client:acme&team_id=T1&team_id=T2" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+`?team_id=` values that don't exist (or that match a team with no members) return zero matches without an error. Unknown values in `?include=` are silently ignored.
+
 ---
 
 ## Get a face
 
 ```bash
 curl https://api.faces.sh/v1/faces/FACE_ALIAS \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+`description` is always populated. `tags` and `teams` are `null` unless requested via `?include=`:
+
+```bash
+curl "https://api.faces.sh/v1/faces/FACE_ALIAS?include=tags,teams" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -105,6 +163,124 @@ curl -X DELETE https://api.faces.sh/v1/faces/FACE_ALIAS \
 ```
 
 Deleting a face drops its compiled psychological primitives and removes it from the centroid index. Documents compiled exclusively for this face are also removed.
+
+---
+
+## Tags
+
+Lightweight lowercase labels attached directly to a face. Use them for quick grouping and filtered search — for example `client:acme`, `status:active`, or `release-candidate`.
+
+### Rules
+
+- Pattern: `^[a-z0-9][a-z0-9:\-_.]{0,63}$`
+- Lowercase only, max 64 chars, no spaces
+- Namespacing via `:` is encouraged (`client:acme`, `team:platform`)
+- Max 32 tags per face
+- Duplicates are collapsed silently
+
+Only the face's owner can edit its tags.
+
+<Note>
+**Tags are a face-level concept.** All `/v1/iam/{id}/tags` endpoints require the target to be a face. Passing a user account's username or UID returns **`400`** with the message *"Tags are only supported on faces."* If a username is shared between a user account and a face (allowed — usernames are not unique across IAM types), the face is preferred automatically. To be unambiguous, pass the face's UID.
+</Note>
+
+### Replace all tags
+
+```bash
+curl -X PUT https://api.faces.sh/v1/iam/FACE_UID/tags \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"tags": ["client:acme", "status:active"]}'
+```
+
+### Add one or more tags (idempotent)
+
+```bash
+curl -X POST https://api.faces.sh/v1/iam/FACE_UID/tags \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"tags": ["urgent"]}'
+```
+
+### Remove a single tag
+
+URL-encode the tag in the path (`:` becomes `%3A`):
+
+```bash
+curl -X DELETE "https://api.faces.sh/v1/iam/FACE_UID/tags/client%3Aacme" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### List tags on a face
+
+```bash
+curl https://api.faces.sh/v1/iam/FACE_UID/tags \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### List all tags across your faces
+
+For tag-picker overlays and similar UIs, fetch the union of every tag across the faces you own:
+
+```bash
+curl https://api.faces.sh/v1/me/tags \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{ "tags": ["client:acme", "release-candidate", "status:active", "urgent"] }
+```
+
+Sorted, deduped, lowercase. Cheap to call — fetches only the tag predicate across owned faces, no other data.
+
+### Filter the face list by tags
+
+`GET /v1/faces` accepts a repeated `?tag=` query parameter. Multiple tags are combined with **AND** — only faces that carry every listed tag are returned. See [List faces](#list-faces) for composition with `?team_id=` and the `?include=` enrichment flag.
+
+```bash
+# All faces tagged client:acme
+curl "https://api.faces.sh/v1/faces?tag=client:acme" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Intersection: both tags required
+curl "https://api.faces.sh/v1/faces?tag=client:acme&tag=urgent" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+---
+
+## Team membership
+
+Replace a face's team-membership list in one call. Idempotent — sending the same body twice is a no-op.
+
+```bash
+curl -X PUT https://api.faces.sh/v1/faces/FACE_ALIAS/teams \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"team_ids": ["TEAM_UID_1", "TEAM_UID_2"]}'
+```
+
+```json
+{
+  "teams": [
+    {"id": "TEAM_UID_1", "name": "Platform Engineering"},
+    {"id": "TEAM_UID_2", "name": "Acme Project"}
+  ]
+}
+```
+
+The body's `team_ids` becomes the face's complete membership list — extras get added, missing ones get removed. Send `{"team_ids": []}` to clear all memberships.
+
+### Authorization
+
+| Case | Status |
+| --- | --- |
+| Caller doesn't own the face | `404` (or `403` if the face exists but isn't owned by the caller) |
+| Listed team_id doesn't exist | `400` |
+| Caller doesn't manage one of the listed teams | `403` |
+| Removing the face from a team the caller doesn't manage | allowed — the face owner has full control over their face's memberships |
+
+The asymmetry on removals mirrors `DELETE /v1/teams/{id}/members/{iam}`: a member's owner can take their face out of any team they're in, but adding to a team always requires the team's manager.
 
 ---
 

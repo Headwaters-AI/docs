@@ -1236,9 +1236,72 @@
                     "Faces"
                 ],
                 "summary": "List Faces",
-                "description": "List all faces owned by the authenticated user.",
+                "description": "List all faces owned by the authenticated user.\n\nOptional ``?tag=`` filters to faces with all given tags (AND, repeatable).\nOptional ``?team_id=`` filters to faces in any of the given teams (OR).\nThe two compose as: ``(tag1 AND tag2) \u2229 (team1 OR team2)``.\n\nOptional ``?include=tags,teams`` opts into per-face tag and team\nenrichment. Without it those fields are returned as ``null``.",
                 "operationId": "list_faces_v1_faces_get",
                 "parameters": [
+                    {
+                        "name": "tag",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter to faces that have ALL of these tags (repeat for AND). Tag values are lowercased before match.",
+                            "title": "Tag"
+                        },
+                        "description": "Filter to faces that have ALL of these tags (repeat for AND). Tag values are lowercased before match."
+                    },
+                    {
+                        "name": "team_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter to faces that are members of ANY of these teams (repeatable for OR / union semantics). Combines with ?tag= as: (tag1 AND tag2) \u2229 (team1 OR team2).",
+                            "title": "Team Id"
+                        },
+                        "description": "Filter to faces that are members of ANY of these teams (repeatable for OR / union semantics). Combines with ?tag= as: (tag1 AND tag2) \u2229 (team1 OR team2)."
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Optional enrichment fields to include on each face item. Repeatable or comma-separated. Recognized values: 'tags', 'teams'. Unknown values are silently ignored. The face description is always included; tags and teams are populated only when requested here.",
+                            "title": "Include"
+                        },
+                        "description": "Optional enrichment fields to include on each face item. Repeatable or comma-separated. Recognized values: 'tags', 'teams'. Unknown values are silently ignored. The face description is always included; tags and teams are populated only when requested here."
+                    },
                     {
                         "name": "authorization",
                         "in": "header",
@@ -1439,7 +1502,7 @@
                     "Faces"
                 ],
                 "summary": "Get Face",
-                "description": "Get a specific face by ID (username).",
+                "description": "Get a specific face by ID (username).\n\nOptional ``?include=tags,teams`` opts into tag and team enrichment on\nthe response. Without it those fields are returned as ``null``.",
                 "operationId": "get_face_v1_faces__face_id__get",
                 "parameters": [
                     {
@@ -1450,6 +1513,27 @@
                             "type": "string",
                             "title": "Face Id"
                         }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Optional enrichment fields. Repeatable or comma-separated. Recognized values: 'tags', 'teams'. Unknown values are silently ignored. The face description is always included; tags and teams are populated only when requested here.",
+                            "title": "Include"
+                        },
+                        "description": "Optional enrichment fields. Repeatable or comma-separated. Recognized values: 'tags', 'teams'. Unknown values are silently ignored. The face description is always included; tags and teams are populated only when requested here."
                     },
                     {
                         "name": "authorization",
@@ -1695,6 +1779,75 @@
                         "content": {
                             "application/json": {
                                 "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/faces/{face_id}/teams": {
+            "put": {
+                "tags": [
+                    "Faces"
+                ],
+                "summary": "Replace Face Teams",
+                "description": "Replace the face's team-membership list with the given team_ids.\n\nAuthorization:\n- Caller must own the face (404 otherwise \u2014 same disclosure pattern as\n  ``GET /faces/{alias}``).\n- Each team_id in ``team_ids`` must reference a team the caller manages\n  (403 if any do not). 400 if a referenced team does not exist.\n- Removals (teams the face is currently in but that are not in target)\n  are always allowed for the face owner. Mirrors the \"owner controls\n  their face\" convention; analogue to ``DELETE /teams/{id}/members/{iam}``\n  where the member's self can leave a team.\n\nOperations are idempotent \u2014 sending the same body twice is a no-op.",
+                "operationId": "replace_face_teams_v1_faces__face_id__teams_put",
+                "parameters": [
+                    {
+                        "name": "face_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Face Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReplaceFaceTeamsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FaceTeamsResponse"
+                                }
                             }
                         }
                     },
@@ -3869,6 +4022,24 @@
                         "description": "Subscription plan to upgrade to: 'connect'"
                     },
                     {
+                        "name": "source",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Client source (e.g. 'cli') \u2014 appended to Stripe success URL",
+                            "title": "Source"
+                        },
+                        "description": "Client source (e.g. 'cli') \u2014 appended to Stripe success URL"
+                    },
+                    {
                         "name": "authorization",
                         "in": "header",
                         "required": false,
@@ -4305,6 +4476,1051 @@
                         "content": {
                             "application/json": {
                                 "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/teams": {
+            "post": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Create Team",
+                "operationId": "create_team_v1_teams_post",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTeamRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Team"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/me/teams": {
+            "get": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "List My Teams",
+                "operationId": "list_my_teams_v1_me_teams_get",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/teams/{team_id}": {
+            "get": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Get Team",
+                "operationId": "get_team_v1_teams__team_id__get",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Team"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Update Team",
+                "operationId": "update_team_v1_teams__team_id__patch",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateTeamRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Team"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Delete Team",
+                "operationId": "delete_team_v1_teams__team_id__delete",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/teams/{team_id}/members": {
+            "get": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "List Team Members",
+                "operationId": "list_team_members_v1_teams__team_id__members_get",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamMembersResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Add Team Members",
+                "operationId": "add_team_members_v1_teams__team_id__members_post",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddTeamMembersRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TeamMembersResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/teams/{team_id}/members/{iam_id}": {
+            "delete": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Remove Team Member",
+                "operationId": "remove_team_member_v1_teams__team_id__members__iam_id__delete",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "iam_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Iam Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/teams/{team_id}/tags": {
+            "get": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "List Team Tags",
+                "operationId": "list_team_tags_v1_teams__team_id__tags_get",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Set Team Tags",
+                "operationId": "set_team_tags_v1_teams__team_id__tags_put",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetTagsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Add Team Tags",
+                "operationId": "add_team_tags_v1_teams__team_id__tags_post",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetTagsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/teams/{team_id}/tags/{tag}": {
+            "delete": {
+                "tags": [
+                    "Teams"
+                ],
+                "summary": "Remove Team Tag",
+                "operationId": "remove_team_tag_v1_teams__team_id__tags__tag__delete",
+                "parameters": [
+                    {
+                        "name": "team_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Team Id"
+                        }
+                    },
+                    {
+                        "name": "tag",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "URL-encoded tag value",
+                            "title": "Tag"
+                        },
+                        "description": "URL-encoded tag value"
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/me/tags": {
+            "get": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "List My Tags",
+                "description": "Union of all tags across faces owned by the caller, sorted and deduped.\n\nDesigned for tag-picker overlays \u2014 fetches only the tags predicate across\nowned model-IAMs, no other IAM data.",
+                "operationId": "list_my_tags_v1_me_tags_get",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/iam/{iam_id}/tags": {
+            "get": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "List Tags",
+                "operationId": "list_tags_v1_iam__iam_id__tags_get",
+                "parameters": [
+                    {
+                        "name": "iam_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Iam Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Set Tags",
+                "description": "Replace all tags on the IAM with the given list.",
+                "operationId": "set_tags_v1_iam__iam_id__tags_put",
+                "parameters": [
+                    {
+                        "name": "iam_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Iam Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetTagsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Add Tags",
+                "description": "Add one or more tags (idempotent). Enforces the overall max after merge.",
+                "operationId": "add_tags_v1_iam__iam_id__tags_post",
+                "parameters": [
+                    {
+                        "name": "iam_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Iam Id"
+                        }
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetTagsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/iam/{iam_id}/tags/{tag}": {
+            "delete": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Remove Tag",
+                "operationId": "remove_tag_v1_iam__iam_id__tags__tag__delete",
+                "parameters": [
+                    {
+                        "name": "iam_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Iam Id"
+                        }
+                    },
+                    {
+                        "name": "tag",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "URL-encoded tag value",
+                            "title": "Tag"
+                        },
+                        "description": "URL-encoded tag value"
+                    },
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TagsResponse"
+                                }
                             }
                         }
                     },
@@ -4782,6 +5998,37 @@
                     "is_admin"
                 ],
                 "title": "AccountStateResponse"
+            },
+            "AddTeamMembersRequest": {
+                "properties": {
+                    "iam_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Iam Id"
+                    },
+                    "iam_ids": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Iam Ids"
+                    }
+                },
+                "type": "object",
+                "title": "AddTeamMembersRequest"
             },
             "AuthorizeResponse": {
                 "properties": {
@@ -6021,6 +7268,17 @@
                         "type": "string",
                         "title": "Alias"
                     },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
                     "basic_facts": {
                         "anyOf": [
                             {
@@ -6079,6 +7337,41 @@
                 ],
                 "title": "CreateFaceRequest",
                 "description": "Request to create a new face."
+            },
+            "CreateTeamRequest": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "protocol": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Protocol"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "title": "CreateTeamRequest"
             },
             "DeleteInvitesRequest": {
                 "properties": {
@@ -6292,6 +7585,17 @@
                         ],
                         "title": "Name"
                     },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
                     "basic_facts": {
                         "anyOf": [
                             {
@@ -6385,6 +7689,34 @@
                             }
                         ],
                         "title": "Warnings"
+                    },
+                    "tags": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Tags"
+                    },
+                    "teams": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "$ref": "#/components/schemas/FaceTeamItem"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Teams"
                     }
                 },
                 "type": "object",
@@ -6395,6 +7727,42 @@
                 ],
                 "title": "FaceObject",
                 "description": "Public representation of a user-created face (model IAM).\n\nThe face's unique slug is exposed as `alias` at the API boundary.\nInternally this maps to the IAM vertex's `username` property in JanusGraph."
+            },
+            "FaceTeamItem": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "title": "FaceTeamItem",
+                "description": "Embedded team summary on a face response.\n\nReturned only when the request opts in via ``?include=teams``."
+            },
+            "FaceTeamsResponse": {
+                "properties": {
+                    "teams": {
+                        "items": {
+                            "$ref": "#/components/schemas/FaceTeamItem"
+                        },
+                        "type": "array",
+                        "title": "Teams"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "teams"
+                ],
+                "title": "FaceTeamsResponse",
+                "description": "Response shape for ``PUT /v1/faces/{alias}/teams`` \u2014 the post-update list."
             },
             "ForgotPasswordRequest": {
                 "properties": {
@@ -6904,7 +8272,14 @@
             "RegisterEmailRequest": {
                 "properties": {
                     "name": {
-                        "type": "string",
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
                         "title": "Name"
                     },
                     "email": {
@@ -6952,7 +8327,6 @@
                 },
                 "type": "object",
                 "required": [
-                    "name",
                     "email",
                     "password"
                 ],
@@ -6966,7 +8340,14 @@
                         "title": "Username"
                     },
                     "name": {
-                        "type": "string",
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
                         "title": "Name"
                     },
                     "address": {
@@ -6989,7 +8370,6 @@
                 "type": "object",
                 "required": [
                     "username",
-                    "name",
                     "address",
                     "signature",
                     "message",
@@ -7049,6 +8429,23 @@
                 ],
                 "title": "RenameThreadRequest"
             },
+            "ReplaceFaceTeamsRequest": {
+                "properties": {
+                    "team_ids": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Team Ids"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "team_ids"
+                ],
+                "title": "ReplaceFaceTeamsRequest",
+                "description": "Request body for ``PUT /v1/faces/{alias}/teams`` \u2014 set-replace semantics.\n\nThe given ``team_ids`` becomes the face's complete team-membership list.\nEvery listed team must be one the caller manages (403 otherwise)."
+            },
             "ResetPasswordRequest": {
                 "properties": {
                     "token": {
@@ -7067,6 +8464,22 @@
                     "new_password"
                 ],
                 "title": "ResetPasswordRequest"
+            },
+            "SetTagsRequest": {
+                "properties": {
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tags"
+                ],
+                "title": "SetTagsRequest"
             },
             "SetThreadMessagesRequest": {
                 "properties": {
@@ -7830,6 +9243,175 @@
                 "title": "SupportedModelObject",
                 "description": "A supported underlying LLM with pricing."
             },
+            "TagsResponse": {
+                "properties": {
+                    "tags": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Tags"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tags"
+                ],
+                "title": "TagsResponse"
+            },
+            "Team": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "tags": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Tags"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "protocol": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Protocol"
+                    },
+                    "member_count": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Member Count"
+                    },
+                    "kind": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Kind"
+                    },
+                    "created_at": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Created At"
+                    },
+                    "updated_at": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Updated At"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "title": "Team"
+            },
+            "TeamListResponse": {
+                "properties": {
+                    "object": {
+                        "type": "string",
+                        "title": "Object",
+                        "default": "list"
+                    },
+                    "data": {
+                        "items": {
+                            "$ref": "#/components/schemas/Team"
+                        },
+                        "type": "array",
+                        "title": "Data"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "TeamListResponse"
+            },
+            "TeamMember": {
+                "properties": {
+                    "iam_id": {
+                        "type": "string",
+                        "title": "Iam Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "iam_id"
+                ],
+                "title": "TeamMember"
+            },
+            "TeamMembersResponse": {
+                "properties": {
+                    "object": {
+                        "type": "string",
+                        "title": "Object",
+                        "default": "list"
+                    },
+                    "data": {
+                        "items": {
+                            "$ref": "#/components/schemas/TeamMember"
+                        },
+                        "type": "array",
+                        "title": "Data"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "TeamMembersResponse"
+            },
             "ThreadMessageInput": {
                 "properties": {
                     "role": {
@@ -8041,6 +9623,17 @@
                         ],
                         "title": "Name"
                     },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
                     "basic_facts": {
                         "anyOf": [
                             {
@@ -8092,7 +9685,7 @@
                 },
                 "type": "object",
                 "title": "UpdateFaceRequest",
-                "description": "Request to update a face."
+                "description": "Request to update a face.\n\nSending ``description: \"\"`` (empty string) clears the existing description.\nOmitting the field (or sending ``null``) leaves it unchanged."
             },
             "UpdateMeRequest": {
                 "properties": {
@@ -8128,6 +9721,46 @@
                     "current_password"
                 ],
                 "title": "UpdateMeRequest"
+            },
+            "UpdateTeamRequest": {
+                "properties": {
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "protocol": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Protocol"
+                    }
+                },
+                "type": "object",
+                "title": "UpdateTeamRequest",
+                "description": "Update request for team metadata.\n\nSending an empty string (\"\") for ``description`` or ``protocol`` clears it.\nOmitting a field (or sending ``null``) leaves it unchanged.\nTags are managed through the dedicated ``/teams/{team_id}/tags`` endpoints."
             },
             "UploadDocumentResult": {
                 "properties": {
@@ -8643,11 +10276,5 @@
                 "title": "VerifySignatureResponse"
             }
         }
-    },
-    "servers": [
-        {
-            "url": "https://api.faces.sh",
-            "description": "Production"
-        }
-    ]
+    }
 }
