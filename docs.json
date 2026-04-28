@@ -38,6 +38,7 @@
             "group": "Guides",
             "pages": [
               "guides/faces",
+              "guides/teams",
               "guides/chat",
               "guides/compile",
               "guides/synthetic-faces",
