@@ -46,6 +46,20 @@ curl https://api.faces.sh/v1/billing/subscription \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+```json
+{
+  "plan": "connect",
+  "status": "active",
+  "face_count": 4,
+  "face_limit": null,
+  "current_period_end": "2026-06-05T13:13:23",
+  "is_active": true,
+  "cancel_at_period_end": false
+}
+```
+
+`cancel_at_period_end` is `true` once the user has called the cancel endpoint and is still inside the paid period — use it to render "Connect ends on `current_period_end`" UI that survives a page reload. The plan stays `"connect"` and `status` stays `"active"` until period end; only `cancel_at_period_end` flips.
+
 ### Subscribe to Connect
 
 ```bash
@@ -62,7 +76,26 @@ curl -X POST https://api.faces.sh/v1/billing/subscription/cancel \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Cancels at the end of the current billing period. The account reverts to the Free plan.
+```json
+{ "canceled_at_period_end": true, "current_period_end": "2026-06-05T13:13:23" }
+```
+
+Cancels at the end of the current billing period. The user keeps Connect access until `current_period_end`; at that moment the account reverts to Free automatically. Subsequent `GET /v1/billing/subscription` calls return `cancel_at_period_end: true` until the period ends.
+
+### Reactivate subscription
+
+If the user changes their mind before the period ends, undo the cancellation. Same subscription, same period end, **no new charge** — auto-renewal simply resumes.
+
+```bash
+curl -X POST https://api.faces.sh/v1/billing/subscription/reactivate \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{ "cancel_at_period_end": false, "current_period_end": "2026-06-05T13:13:23" }
+```
+
+Returns **`400`** if the user has no Stripe subscription, or if the subscription is not currently pending cancel (so a stray double-call from the UI is a clear no-op rather than a silent success).
 
 ---
 
@@ -114,7 +147,7 @@ curl https://api.faces.sh/v1/billing/compile-quota \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Returns per-account quota plus a breakdown by face showing tokens in graph, tokens used this period, and tokens used all-time.
+Returns per-account quota plus a breakdown by face showing `compile_tokens_synced` (source content currently synced into the face's graph; decrements on delete), `tokens_charged_period`, and `tokens_charged_alltime`.
 
 See [Compile guide](/guides/compile) for full details on how quota works and what overflow billing does.
 

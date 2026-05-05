@@ -49,7 +49,13 @@ By default, a face uses its configured `default_model`, or the system default if
 
 The format is `alias@llm-model`. The model must be in the supported models list.
 
-You can also pass a bare model name with no face prefix — e.g. `"model": "gpt-4o-mini"`. This proxies directly to the LLM with no persona injected. See [Face templates](#face-templates) for how to use face profiles without a primary persona.
+The `model` field accepts three shapes on **all three endpoints** (`/v1/chat/completions`, `/v1/messages`, `/v1/responses`):
+
+| Shape | Meaning |
+| --- | --- |
+| `"alice"` (bare alias) | Use the face's `default_model`. **`404`** if the alias isn't an owned face; **`400`** if the face has no `default_model` set. |
+| `"alice@gpt-4o-mini"` | Use the face's persona with the specified model. |
+| `"gpt-4o-mini"` (bare model) | Plain LLM passthrough — no persona injected. See [Face templates](#face-templates) for using face profiles without a primary persona. |
 
 <Note>
   Model overrides always use the system API key — no user-stored credentials are required or used.
