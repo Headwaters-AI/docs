@@ -3957,7 +3957,7 @@
                     "Billing"
                 ],
                 "summary": "Get Compile Quota",
-                "description": "Return user-level compile token quota and per-face build stats.\n\ntokens_used / tokens_limit / tokens_remaining reflect the single shared\nbucket for the authenticated user across all their faces.\n\nPer-face stats include:\n- tokens_in_graph: tokens currently compiled in the knowledge graph (decrements on delete)\n- tokens_charged_period: tokens charged to quota this billing period (resets with user quota)\n- tokens_charged_alltime: cumulative tokens charged since account creation (never resets)",
+                "description": "Return user-level compile token quota and per-face build stats.\n\ntokens_used / tokens_limit / tokens_remaining reflect the single shared\nbucket for the authenticated user across all their faces.\n\nPer-face stats include:\n- compile_tokens_synced: tokens of source content currently synced into the graph (decrements on delete)\n- tokens_charged_period: tokens charged to quota this billing period (resets with user quota)\n- tokens_charged_alltime: cumulative tokens charged since account creation (never resets)",
                 "operationId": "get_compile_quota_v1_billing_compile_quota_get",
                 "parameters": [
                     {
@@ -4297,6 +4297,56 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/billing/subscription/reactivate": {
+            "post": {
+                "tags": [
+                    "Billing"
+                ],
+                "summary": "Reactivate Subscription",
+                "description": "Reactivate a subscription that is pending cancellation.\n\nReverses a prior POST /v1/billing/subscription/cancel by flipping the\nStripe subscription's cancel_at_period_end flag back to False. The user\nkeeps the same subscription, the same period end, and is not charged\nagain \u2014 auto-renewal simply resumes.\n\n400 if the user has no Stripe subscription, or if the subscription is\nnot currently pending cancel.",
+                "operationId": "reactivate_subscription_v1_billing_subscription_reactivate_post",
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "title": "Authorization"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReactivateSubscriptionResponse"
                                 }
                             }
                         }
@@ -7457,9 +7507,9 @@
                         "type": "string",
                         "title": "Face Id"
                     },
-                    "tokens_in_graph": {
+                    "compile_tokens_synced": {
                         "type": "integer",
-                        "title": "Tokens In Graph"
+                        "title": "Compile Tokens Synced"
                     },
                     "tokens_charged_period": {
                         "type": "integer",
@@ -7488,7 +7538,7 @@
                 "type": "object",
                 "required": [
                     "face_id",
-                    "tokens_in_graph",
+                    "compile_tokens_synced",
                     "tokens_charged_period",
                     "tokens_charged_alltime",
                     "profile_token_count",
@@ -8268,6 +8318,31 @@
                     "exists"
                 ],
                 "title": "NonceResponse"
+            },
+            "ReactivateSubscriptionResponse": {
+                "properties": {
+                    "cancel_at_period_end": {
+                        "type": "boolean",
+                        "title": "Cancel At Period End"
+                    },
+                    "current_period_end": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Current Period End"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "cancel_at_period_end",
+                    "current_period_end"
+                ],
+                "title": "ReactivateSubscriptionResponse"
             },
             "RegisterEmailRequest": {
                 "properties": {
@@ -9124,6 +9199,11 @@
                     "is_active": {
                         "type": "boolean",
                         "title": "Is Active"
+                    },
+                    "cancel_at_period_end": {
+                        "type": "boolean",
+                        "title": "Cancel At Period End",
+                        "default": false
                     }
                 },
                 "type": "object",
