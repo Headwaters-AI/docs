@@ -77,11 +77,11 @@ curl https://api.faces.sh/v1/faces \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Each face item always includes `description`. By default, `tags` and `teams` are returned as `null` — opt in with `?include=tags,teams` (repeatable or comma-separated):
+Each face item always includes `description`. By default, `tags`, `teams`, and the compiled-profile fields are returned as `null` — opt in with `?include=` (repeatable or comma-separated). Recognized values: `tags`, `teams`, `profile`.
 
 ```bash
-# Include tag and team enrichment on every item
-curl "https://api.faces.sh/v1/faces?include=tags,teams" \
+# Tags + teams + the five compiled-profile fields on every item
+curl "https://api.faces.sh/v1/faces?include=tags,teams,profile" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -98,11 +98,26 @@ curl "https://api.faces.sh/v1/faces?include=tags,teams" \
         {"id": "...", "name": "Platform Engineering"}
       ],
       "default_model": "gpt-4o-mini",
+      "profile_token_count": 712,
+      "total_tokens_saved": 84210,
+      "component_counts": {"alpha": 18, "beta": 22, "delta": 11, "epsilon": 6},
+      "compile_tokens_synced": 8200,
+      "last_synced_at": "2026-04-22T16:24:05.932712",
       "...": "..."
     }
   ]
 }
 ```
+
+`?include=profile` populates five fields in one round-trip — designed for table-style face listings (dashboard rows, CLI tables) so you don't have to pair `GET /v1/faces` with `GET /v1/faces/stats` and merge client-side. The same five field names appear on `GET /v1/faces/stats` for high-frequency polling, and on `GET /v1/faces/{alias}?include=profile` for single-face reads.
+
+| Field | Meaning |
+| --- | --- |
+| `profile_token_count` | Tokens in the compiled persona prompt rendered from this face. |
+| `total_tokens_saved` | Cumulative LLM tokens this face's compiled profile has avoided sending. |
+| `component_counts` | Per-primitive vertex count (`alpha`, `beta`, `delta`, `epsilon`) currently in the graph. |
+| `compile_tokens_synced` | Tokens of source content currently synced into the graph. Decrements when sources are deleted. |
+| `last_synced_at` | ISO timestamp of the most recent compile sync, or `null` if the face has never been synced. |
 
 The list endpoint also accepts two filter parameters that compose:
 
@@ -128,10 +143,10 @@ curl https://api.faces.sh/v1/faces/FACE_ALIAS \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-`description` is always populated. `tags` and `teams` are `null` unless requested via `?include=`:
+`description` is always populated. `tags`, `teams`, and the five compiled-profile fields (`profile_token_count`, `total_tokens_saved`, `component_counts`, `compile_tokens_synced`, `last_synced_at`) are `null` unless requested via `?include=`:
 
 ```bash
-curl "https://api.faces.sh/v1/faces/FACE_ALIAS?include=tags,teams" \
+curl "https://api.faces.sh/v1/faces/FACE_ALIAS?include=tags,teams,profile" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 

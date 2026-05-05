@@ -1236,7 +1236,7 @@
                     "Faces"
                 ],
                 "summary": "List Faces",
-                "description": "List all faces owned by the authenticated user.\n\nOptional ``?tag=`` filters to faces with all given tags (AND, repeatable).\nOptional ``?team_id=`` filters to faces in any of the given teams (OR).\nThe two compose as: ``(tag1 AND tag2) \u2229 (team1 OR team2)``.\n\nOptional ``?include=tags,teams`` opts into per-face tag and team\nenrichment. Without it those fields are returned as ``null``.",
+                "description": "List all faces owned by the authenticated user.\n\nOptional ``?tag=`` filters to faces with all given tags (AND, repeatable).\nOptional ``?team_id=`` filters to faces in any of the given teams (OR).\nThe two compose as: ``(tag1 AND tag2) \u2229 (team1 OR team2)``.\n\nOptional ``?include=tags,teams,profile`` opts into per-face enrichment.\nWithout ``profile`` in the include list, the five compiled-profile fields\nreturn as ``null`` \u2014 matches the existing tags/teams pattern.",
                 "operationId": "list_faces_v1_faces_get",
                 "parameters": [
                     {
@@ -1297,10 +1297,10 @@
                                     "type": "null"
                                 }
                             ],
-                            "description": "Optional enrichment fields to include on each face item. Repeatable or comma-separated. Recognized values: 'tags', 'teams'. Unknown values are silently ignored. The face description is always included; tags and teams are populated only when requested here.",
+                            "description": "Optional enrichment fields to include on each face item. Repeatable or comma-separated. Recognized values: 'tags', 'teams', 'profile'. Unknown values are silently ignored. The face description is always included; tags, teams, and the compiled-profile fields (profile_token_count, total_tokens_saved, component_counts, compile_tokens_synced, last_synced_at) are populated only when requested here, and returned as null otherwise.",
                             "title": "Include"
                         },
-                        "description": "Optional enrichment fields to include on each face item. Repeatable or comma-separated. Recognized values: 'tags', 'teams'. Unknown values are silently ignored. The face description is always included; tags and teams are populated only when requested here."
+                        "description": "Optional enrichment fields to include on each face item. Repeatable or comma-separated. Recognized values: 'tags', 'teams', 'profile'. Unknown values are silently ignored. The face description is always included; tags, teams, and the compiled-profile fields (profile_token_count, total_tokens_saved, component_counts, compile_tokens_synced, last_synced_at) are populated only when requested here, and returned as null otherwise."
                     },
                     {
                         "name": "authorization",
@@ -1502,7 +1502,7 @@
                     "Faces"
                 ],
                 "summary": "Get Face",
-                "description": "Get a specific face by ID (username).\n\nOptional ``?include=tags,teams`` opts into tag and team enrichment on\nthe response. Without it those fields are returned as ``null``.",
+                "description": "Get a specific face by ID (username).\n\nOptional ``?include=tags,teams,profile`` opts into per-face enrichment.\nWithout ``profile``, the five compiled-profile fields return as ``null``\n(matches the existing tags/teams pattern).",
                 "operationId": "get_face_v1_faces__face_id__get",
                 "parameters": [
                     {
@@ -1530,10 +1530,10 @@
                                     "type": "null"
                                 }
                             ],
-                            "description": "Optional enrichment fields. Repeatable or comma-separated. Recognized values: 'tags', 'teams'. Unknown values are silently ignored. The face description is always included; tags and teams are populated only when requested here.",
+                            "description": "Optional enrichment fields. Repeatable or comma-separated. Recognized values: 'tags', 'teams', 'profile'. Unknown values are silently ignored. The face description is always included; tags, teams, and the compiled-profile fields (profile_token_count, total_tokens_saved, component_counts, compile_tokens_synced, last_synced_at) are populated only when requested here, and returned as null otherwise.",
                             "title": "Include"
                         },
-                        "description": "Optional enrichment fields. Repeatable or comma-separated. Recognized values: 'tags', 'teams'. Unknown values are silently ignored. The face description is always included; tags and teams are populated only when requested here."
+                        "description": "Optional enrichment fields. Repeatable or comma-separated. Recognized values: 'tags', 'teams', 'profile'. Unknown values are silently ignored. The face description is always included; tags, teams, and the compiled-profile fields (profile_token_count, total_tokens_saved, component_counts, compile_tokens_synced, last_synced_at) are populated only when requested here, and returned as null otherwise."
                     },
                     {
                         "name": "authorization",
@@ -7694,38 +7694,6 @@
                         ],
                         "title": "Formula"
                     },
-                    "profile_token_count": {
-                        "anyOf": [
-                            {
-                                "type": "integer"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Profile Token Count"
-                    },
-                    "total_tokens_saved": {
-                        "anyOf": [
-                            {
-                                "type": "integer"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Total Tokens Saved"
-                    },
-                    "component_counts": {
-                        "anyOf": [
-                            {
-                                "$ref": "#/components/schemas/FaceComponentCounts"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ]
-                    },
                     "warnings": {
                         "anyOf": [
                             {
@@ -7767,6 +7735,60 @@
                             }
                         ],
                         "title": "Teams"
+                    },
+                    "profile_token_count": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Profile Token Count"
+                    },
+                    "total_tokens_saved": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Total Tokens Saved"
+                    },
+                    "component_counts": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/FaceComponentCounts"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "compile_tokens_synced": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Compile Tokens Synced"
+                    },
+                    "last_synced_at": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Last Synced At"
                     }
                 },
                 "type": "object",
