@@ -254,7 +254,7 @@ print(response.choices[0].message.content)
 Connect-plan users with a linked ChatGPT account get codex-eligible models (gpt-5.x) routed through their ChatGPT subscription at no cost — but **only at `POST /v1/responses`** (the ChatGPT/Codex backend implements the Responses API, not Chat Completions). When you request a model like `gpt-5.4` via `/v1/responses`, the API tries the Codex OAuth endpoint first. If OAuth is unavailable or fails, it falls back to the system API key (which charges your credit balance) — unless fallback is disabled.
 
 <Warning>
-  Calling a codex-eligible model at **`/v1/chat/completions`** does **not** use free OAuth routing — it would bill the paid API. For a connected Connect-plan user, the API returns a `409` with `detail.error = "use_responses_for_free_oauth"` instead of charging. Use `/v1/responses` for these models, or set `api_fallback: true` to opt into paid billing at `/chat/completions`. Check `codex_eligible` in [`/v1/models`](#supported-models) to know which models to route to `/v1/responses`.
+  Calling a codex-eligible model at **`/v1/chat/completions`** does **not** use free OAuth routing. For a connected Connect-plan user, the API returns a `409` with `detail.error = "use_responses_for_free_oauth"` instead of charging. **Route codex-eligible models to `/v1/responses` instead** — they work there for everyone (free if connected, paid otherwise). This is also exactly what the model's `endpoint` field in [`/v1/models`](#supported-models) tells you to do, so routing by `endpoint` handles codex correctly without any connection-awareness.
 </Warning>
 
 To prevent unexpected charges at `/v1/responses`, pass `"oauth_only": true` in the request body:

@@ -127,18 +127,22 @@ Returns `204 No Content`.
 
 ## Where free routing applies
 
-OAuth/ChatGPT routing is **`POST /v1/responses` only**. The ChatGPT/Codex backend exposes the Responses API; it has no Chat Completions endpoint.
+Free ChatGPT-subscription routing happens **only at `POST /v1/responses`** (the ChatGPT/Codex backend exposes the Responses API, not Chat Completions). Codex-eligible models (gpt-5.x) route to `/v1/responses` for **everyone** — the endpoint is the same; only the billing differs by whether the caller has a ChatGPT connection:
 
-| Endpoint | Codex-eligible model, connected user | Billing |
-|----------|--------------------------------------|---------|
-| `POST /v1/responses` | routed through your ChatGPT subscription | **free** |
-| `POST /v1/chat/completions` | paid OpenAI API (see guard below) | credits |
+| Caller | `POST /v1/responses` | `POST /v1/chat/completions` |
+|--------|----------------------|------------------------------|
+| Connected ChatGPT account | **free** (routed through your subscription) | `409` → use `/v1/responses` (guard) |
+| Not connected (Free/Standard, or no token) | paid OpenAI API | paid OpenAI API |
 
-For codex-eligible models (see `codex_eligible` in [`GET /v1/models`](/guides/chat#supported-models)), call `/v1/responses` to get free routing **and** the richer Responses feature set (tools, reasoning, stateful chaining, granular streaming).
+So clients can route codex-eligible models (see `codex_eligible` in [`GET /v1/models`](/guides/chat#supported-models), or the model's `endpoint`) to `/v1/responses` unconditionally — connected users get it free, everyone else pays — and get the richer Responses feature set (tools, reasoning, stateful chaining, granular streaming) either way.
+
+<Note>
+  Connect-plan users with **no** linked token (and `api_fallback` off) get a `422` at `/v1/responses` for codex models instead of a silent charge — they're expected to connect (or enable `api_fallback`). This gate applies to the Connect plan only; Free/Standard users simply pay.
+</Note>
 
 ### The `/chat/completions` safety guard
 
-Because `/chat/completions` can't use free OAuth routing, a connected Connect-plan user who calls a codex-eligible model there would otherwise be billed the paid API. To prevent surprise charges, the API returns:
+A connected Connect-plan user who calls a codex-eligible model at `/chat/completions` would be billed the paid API even though `/responses` is free for them. To prevent surprise charges, the API returns:
 
 ```json
 HTTP 409
