@@ -257,6 +257,10 @@ Connect-plan users with a linked ChatGPT account get codex-eligible models (gpt-
   Calling a codex-eligible model at **`/v1/chat/completions`** does **not** use free OAuth routing. For a connected Connect-plan user, the API returns a `409` with `detail.error = "use_responses_for_free_oauth"` instead of charging. **Route codex-eligible models to `/v1/responses` instead** — they work there for everyone (free if connected, paid otherwise). This is also exactly what the model's `endpoint` field in [`/v1/models`](#supported-models) tells you to do, so routing by `endpoint` handles codex correctly without any connection-awareness.
 </Warning>
 
+<Note>
+  **Request shape:** `/v1/responses` is the native OpenAI Responses API — it takes **`input`**, not `messages`. Sending `messages` returns `400 "Unsupported parameter: messages"`. `input` accepts either a plain string (`"input": "hi"`) or an array of turns (`"input": [{"role": "user", "content": "hi"}]`) for multi-turn history. The system prompt goes in `instructions` — for `alias@model` requests, the face's persona is injected into `instructions` automatically, so you don't need to set it. The response is the Responses shape (`output` / `output_text` / reasoning items).
+</Note>
+
 To prevent unexpected charges at `/v1/responses`, pass `"oauth_only": true` in the request body:
 
 ```bash
