@@ -33,11 +33,11 @@ curl https://api.faces.sh/v1/billing/balance \
 | Plan | Price | Faces | OAuth routing |
 |------|-------|-------|---------------|
 | Free | $0 | Unlimited | — |
-| Connect | $17/mo | Unlimited | OpenAI (chat + compile) |
+| Connect | $17/mo | Unlimited | ChatGPT (codex models via `/v1/responses` + compile) |
 
 On the **Free** plan, all inference (chat and compile) is billed per-token from your credit balance.
 
-On the **Connect** plan, you link your OpenAI account via OAuth. All inference — both chat and compile interviews — routes through your ChatGPT subscription at no additional cost. If OAuth is unavailable (e.g., you hit OpenAI's limits), requests fall back to your credit balance at the same per-token rates as the Free plan. See [OAuth connections](/guides/oauth) for details.
+On the **Connect** plan, you link your ChatGPT account via OAuth (device-code flow). Codex-eligible models (gpt-5.x) run free through your ChatGPT subscription **at `POST /v1/responses`**, and compile interviews run free too. Other usage — non-codex models, or codex models called at `/v1/chat/completions` — is billed per-token from your credit balance (the same rates as Free). If OAuth is unavailable (e.g., you hit OpenAI's limits), `/v1/responses` requests fall back to credits only when `api_fallback` is enabled. See [OAuth connections](/guides/oauth) for details.
 
 ### Get current subscription
 

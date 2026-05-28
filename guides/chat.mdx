@@ -7,15 +7,19 @@ description: Run inference with any face using the chat API.
 
 The Faces API exposes three chat endpoints. Pass a face alias in the `model` field to load that face's compiled persona as the system context.
 
-| Endpoint | Format |
-|----------|--------|
-| `/v1/chat/completions` | OpenAI chat completions |
-| `/v1/messages` | Anthropic messages |
-| `/v1/responses` | OpenAI responses |
+| Endpoint | Format | Use it for |
+|----------|--------|------------|
+| `/v1/chat/completions` | OpenAI chat completions | Any model — universal, OpenAI-shape responses |
+| `/v1/messages` | Anthropic messages | Native Anthropic format |
+| `/v1/responses` | OpenAI responses | gpt-5.x; required for free ChatGPT/OAuth routing and the richer Responses features |
 
 <Tip>
-  **Auto-routing:** You can send any model to any endpoint. The API automatically converts the request format and routes to the correct upstream. For example, sending `gpt-5.4` to `/v1/chat/completions` auto-routes to the Responses API, and sending `claude-sonnet-4-6` auto-routes to Anthropic Messages.
+  **Each endpoint is a faithful passthrough — pick the one matching the response shape you want.** `/v1/chat/completions` forwards to each provider's own chat-completions API and always returns the OpenAI `chat.completion` shape (claude is routed through Anthropic's OpenAI-compatible endpoint; gpt-5.x through OpenAI). It does **not** convert to the Responses or Messages format. A model that's responses-only (e.g. `gpt-5.2-pro`) returns the provider's own "use `/v1/responses`" error.
 </Tip>
+
+<Note>
+  **Codex-eligible models (gpt-5.x) are free for connected Connect-plan users only at `/v1/responses`.** Calling them at `/chat/completions` uses the paid API and triggers a `409` safety guard for connected users. See [OAuth routing](#oauth-routing-connect-plan).
+</Note>
 
 ---
 
@@ -214,7 +218,15 @@ curl https://api.faces.sh/v1/models \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Returns all models available for use in the `model` field override syntax.
+Returns all models available for use in the `model` field override syntax, with pricing. Each model object includes:
+
+| Field | Description |
+|-------|-------------|
+| `endpoint` | The model's native endpoint. All chat models also work at `/v1/chat/completions` (OpenAI shape); only `*-pro` models are `/v1/responses`-only. |
+| `codex_eligible` | `true` if the model is free for connected Connect-plan users via `/v1/responses`. Prefer `/v1/responses` for these when the user is connected. |
+| `oauth_free` | Marks the free OAuth entry. Codex-eligible models appear **twice**: a paid `provider: "openai"` entry and a free `provider: "openai_oauth"`, `endpoint: "/v1/responses"`, `$0` entry. |
+
+Drive your model picker from this endpoint rather than hardcoding a list.
 
 ---
 
@@ -239,9 +251,13 @@ print(response.choices[0].message.content)
 
 ## OAuth routing (Connect plan)
 
-Connect-plan users with a linked OpenAI account get certain models routed through their ChatGPT subscription at no cost. When you request a model like `gpt-5.4` via `/v1/responses`, the API automatically tries the Codex OAuth endpoint first. If OAuth is unavailable or fails, it falls back to the system API key (which charges your credit balance).
+Connect-plan users with a linked ChatGPT account get codex-eligible models (gpt-5.x) routed through their ChatGPT subscription at no cost — but **only at `POST /v1/responses`** (the ChatGPT/Codex backend implements the Responses API, not Chat Completions). When you request a model like `gpt-5.4` via `/v1/responses`, the API tries the Codex OAuth endpoint first. If OAuth is unavailable or fails, it falls back to the system API key (which charges your credit balance) — unless fallback is disabled.
 
-To prevent unexpected charges, pass `"oauth_only": true` in the request body:
+<Warning>
+  Calling a codex-eligible model at **`/v1/chat/completions`** does **not** use free OAuth routing — it would bill the paid API. For a connected Connect-plan user, the API returns a `409` with `detail.error = "use_responses_for_free_oauth"` instead of charging. Use `/v1/responses` for these models, or set `api_fallback: true` to opt into paid billing at `/chat/completions`. Check `codex_eligible` in [`/v1/models`](#supported-models) to know which models to route to `/v1/responses`.
+</Warning>
+
+To prevent unexpected charges at `/v1/responses`, pass `"oauth_only": true` in the request body:
 
 ```bash
 curl -X POST https://api.faces.sh/v1/responses \
@@ -275,4 +291,5 @@ These let your client know whether OAuth was used (cost = 0) or the system key w
 |------|---------|
 | `402` | Insufficient credits |
 | `404` | Face not found or not owned by you |
-| `422` | Invalid request body or unknown face alias in `${...}` template |
+| `409` | `use_responses_for_free_oauth` — connected Connect-plan user called a codex-eligible model at `/chat/completions`; use `/v1/responses` (free) or set `api_fallback: true` |
+| `422` | Invalid request body, unknown face alias in `${...}` template, or an OAuth failure at `/v1/responses` (see [OAuth failure responses](/guides/oauth#oauth-failure-responses-v1responses)) |
