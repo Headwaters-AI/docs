@@ -224,7 +224,7 @@ Returns all models available for use in the `model` field override syntax, with 
 |-------|-------------|
 | `endpoint` | The model's native endpoint. All chat models also work at `/v1/chat/completions` (OpenAI shape); only `*-pro` models are `/v1/responses`-only. |
 | `codex_eligible` | `true` if the model is free for connected Connect-plan users via `/v1/responses`. Prefer `/v1/responses` for these when the user is connected. |
-| `oauth_free` | Marks the free OAuth entry. Codex-eligible models appear **twice**: a paid `provider: "openai"` entry and a free `provider: "openai_oauth"`, `endpoint: "/v1/responses"`, `$0` entry. |
+| `provider` | Codex-eligible models appear **twice**: a paid `provider: "openai"` entry, and the free route as a separate `provider: "openai_oauth"`, `endpoint: "/v1/responses"`, `$0` entry. |
 
 Drive your model picker from this endpoint rather than hardcoding a list.
 
