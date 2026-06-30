@@ -107,3 +107,41 @@ The result is a coherent persona that blends the source faces according to the f
 - **Constrained character**: `alice & mentor` — only the facets of Alice that overlap with a mentor archetype.
 - **Differenced persona**: `senior-dev - junior-dev` — the characteristics that distinguish a senior developer from a junior one.
 - **A/B testing**: Create `alice | bob` and `alice & bob` to compare unioned vs. intersected personas.
+
+---
+
+## Run-time composites (compose on the fly)
+
+You don't have to create a synthetic face first. You can pass a formula **directly in the `model` field** of a chat request and have it composed for that one call:
+
+```bash
+curl -X POST https://api.faces.sh/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "(alice | bob)@claude-sonnet-4-6",
+    "messages": [{"role": "user", "content": "How do you approach creative problems?"}]
+  }'
+```
+
+The same operators apply (`|`, `&`, `-`, `^`, parentheses). This works on all three inference endpoints — `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
+
+Behaviorally a run-time composite is identical to a persisted one of the same operands — the knowledge is merged the same way, from the operands' cached knowledge, so there's no meaningful latency difference. The choice is ergonomic: persist when you'll reuse it (and want to name it); compose on the fly for one-off blends.
+
+### Rules
+
+- **An explicit `@model` is required.** A run-time composite has no stored `default_model`, so the bare form `(alice | bob)` (no `@model`) returns `400`. Persisted synthetic faces, by contrast, can carry a `default_model`.
+- **Operands must be your own concrete faces** — same as persisted formulas. Unknown/unowned operand → `404`; referencing a synthetic face as an operand → `422` (no nesting).
+- **`owner:alias` operands are not supported** inside a run-time formula — operands are your own faces by bare alias. (Use a persisted synthetic face if you need something more elaborate.)
+- **Difference needs spaces:** write `alice - bob` (a dash *between* characters, like `news-bot`, is read as part of an alias). This matches persisted-formula behavior.
+
+### Identity: the first operand
+
+A composite needs a single identity to embody. A run-time composite takes its **name and any [`profile_addendum`](/guides/faces#profile-addendum) from the first (leftmost) operand**. This is consistent with the union precedence — in `a | b`, operand `a` wins on conflicts, so it's the natural identity anchor:
+
+```
+(alice | bob)@model   →  embodies "Alice", augmented with Bob's knowledge
+(bob | alice)@model   →  embodies "Bob", augmented with Alice's knowledge
+```
+
+If you want a **custom** name or system prompt for the blend (rather than inheriting the first operand's), create a persisted synthetic face — you name it and set its `profile_addendum` at creation.

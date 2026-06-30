@@ -47,6 +47,36 @@ A key:value object injected into the system prompt on every chat request. Use it
 
 Only keys from the [supported attributes list](#list-supported-attributes) are accepted. Unsupported keys are dropped and a `warnings` array is included in the response indicating which keys were removed.
 
+### `profile_addendum`
+
+An **arbitrary system prompt** stored on the face. Unlike `description` (which is human-facing metadata), `profile_addendum` **is** sent to the model on every chat request. It is injected **after** the face's rendered persona profile and **before** any system prompt supplied on the request itself:
+
+```
+1. Rendered persona profile   (generated from compiled knowledge)
+2. profile_addendum            (your stored system prompt)
+3. Request-provided system     (the system/instructions in the chat request, if any)
+```
+
+Use it for durable behavioral instructions that aren't part of the persona itself — output format rules, guardrails, tone constraints, tool-use conventions.
+
+```bash
+curl -X POST https://api.faces.sh/v1/faces \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alias": "support-bot",
+    "name": "Support Bot",
+    "profile_addendum": "Always answer in under 3 sentences. Never promise refunds.",
+    "default_model": "claude-sonnet-4-6"
+  }'
+```
+
+- **Maximum 100,000 characters.** Over the limit returns `422`. Formatting (blank lines, indentation) is preserved; ASCII control characters are stripped.
+- Applies on **all** inference endpoints — `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
+- Send `"profile_addendum": ""` to clear it. Omit the field on PATCH to leave it unchanged.
+- Returned on `GET /v1/faces/{alias}` **only for the face's owner**. It is treated as proprietary (like the persona) and is never exposed on cross-user or [published](/guides/system-faces) face listings, nor echoed back in `/v1/responses` output.
+- For [synthetic faces](/guides/synthetic-faces): a persisted composite uses its own `profile_addendum`; a run-time composite borrows the **first operand's**.
+
 ---
 
 ## List supported attributes
@@ -134,6 +164,27 @@ curl "https://api.faces.sh/v1/faces?tag=client:acme&team_id=T1&team_id=T2" \
 
 `?team_id=` values that don't exist (or that match a team with no members) return zero matches without an error. Unknown values in `?include=` are silently ignored.
 
+### Include published (system) faces
+
+By default the list returns only faces you own. Pass `?include_published=true` to also include faces published system-wide — currently the [system faces](/guides/system-faces) under the `head` account. Each published item has `published: true` and an `owned_by` you combine into the chat handle `owned_by:alias` (e.g. `head:logician`).
+
+```bash
+# Your own faces plus all published system faces
+curl "https://api.faces.sh/v1/faces?include_published=true" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Only the system faces from the head account
+curl "https://api.faces.sh/v1/faces?include_published=true&from_users=head" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Two optional owner filters narrow the published results (they apply only to published faces, not your own):
+
+- `?from_users=` — **allowlist**, repeatable or comma-separated. Only published faces owned by these accounts are returned.
+- `?not_from_users=` — **blocklist**, repeatable or comma-separated. Published faces owned by these accounts are excluded.
+
+`from_users` and `not_from_users` are mutually exclusive — passing both returns **`400`**. The tag and team filters apply to owned faces only.
+
 ---
 
 ## Get a face
@@ -167,6 +218,8 @@ curl -X PATCH https://api.faces.sh/v1/faces/FACE_ALIAS \
 ### `default_model`
 
 Sets the LLM used when no model is specified in the chat request. Accepts any model name from the [supported models list](/api-reference/openapi). Leave null to use the system default.
+
+PATCH also accepts `description`, `profile_addendum`, `formula`, `basic_facts`, `default_tools`, and `name`. For the text fields (`description`, `profile_addendum`) an empty string clears the field and omitting it leaves it unchanged.
 
 ---
 

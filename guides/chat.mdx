@@ -53,13 +53,19 @@ By default, a face uses its configured `default_model`, or the system default if
 
 The format is `alias@llm-model`. The model must be in the supported models list.
 
-The `model` field accepts three shapes on **all three endpoints** (`/v1/chat/completions`, `/v1/messages`, `/v1/responses`):
+The `model` field accepts these shapes on **all three endpoints** (`/v1/chat/completions`, `/v1/messages`, `/v1/responses`):
 
 | Shape | Meaning |
 | --- | --- |
-| `"alice"` (bare alias) | Use the face's `default_model`. **`404`** if the alias isn't an owned face; **`400`** if the face has no `default_model` set. |
-| `"alice@gpt-4o-mini"` | Use the face's persona with the specified model. |
+| `"alice"` (bare alias) | One of **your own** faces, using its `default_model`. **`404`** if the alias isn't an owned face; **`400`** if the face has no `default_model` set. |
+| `"alice@gpt-4o-mini"` | Your own face's persona with the specified model. |
+| `"head:logician@gpt-5.4"` (namespaced) | A **system face** — a published persona under another account (here `head`), addressed as `owner:alias`. Billed to *your* account. **`404`** if the owner or published face doesn't exist. See [System Faces](/guides/system-faces). |
+| `"(alice \| bob)@gpt-4o-mini"` (composite) | A **run-time composite** — a formula over your own faces, composed on the fly. Operators `\| & - ^` and parentheses. `@model` is required. See [Synthetic Faces → Run-time composites](/guides/synthetic-faces#run-time-composites-compose-on-the-fly). |
 | `"gpt-4o-mini"` (bare model) | Plain LLM passthrough — no persona injected. See [Face templates](#face-templates) for using face profiles without a primary persona. |
+
+<Note>
+  The `:` separates an owner account from the face alias. A bare alias (`alice`) only ever resolves your own faces; to use a face owned by another account it must be published and addressed as `owner:alias` (e.g. `head:logician`). System faces don't set a `default_model`, so always include `@<model>`.
+</Note>
 
 <Note>
   Model overrides always use the system API key — no user-stored credentials are required or used.

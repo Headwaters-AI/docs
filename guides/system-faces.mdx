@@ -1,0 +1,83 @@
+---
+title: System Faces
+description: Ready-to-use faces provided by Faces that any account can chat with.
+---
+
+# System Faces
+
+System faces are a curated set of compiled personas that **Faces provides for everyone** — you can chat with them straight away without creating or compiling a face of your own. They live under the platform `head` account and are addressed with the `head:` prefix, e.g. `head:logician`.
+
+You pay for inference exactly as you would for your own faces (the calling account's credits are charged). There is no charge to *use* a system face beyond the normal per-token inference cost.
+
+<Note>
+  **System faces may change over time without notice.** Faces curates this set — personas can be added, updated, recompiled, or removed at any time. Don't hardcode the list; fetch it from the API (see [Discover system faces](#discover-system-faces)) so your app always reflects what's currently available.
+</Note>
+
+<Note>
+  Today, system faces are the only publicly shared faces, and they come from the `head` account. The ability for **users to publish their own faces** for others to use may arrive in the future — when it does, the same `owner:alias` addressing described here will apply.
+</Note>
+
+---
+
+## Discover system faces
+
+List the available system faces by passing `include_published=true` and filtering to the `head` account:
+
+```bash
+curl "https://api.faces.sh/v1/faces?include_published=true&from_users=head" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Published faces are returned alongside any faces you own. Each system face has `published: true` and an `owned_by` of `head` — combine them as the chat handle `head:<alias>`:
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "alias": "logician",
+      "owned_by": "head",
+      "published": true,
+      "default_model": null,
+      "description": "..."
+    }
+  ]
+}
+```
+
+See [List faces](/guides/faces#list-faces) for the full `include_published` / `from_users` / `not_from_users` parameter reference.
+
+---
+
+## Chat with a system face
+
+Address a system face by its handle `head:<alias>` in the `model` field, and append a model with `@`:
+
+```bash
+curl -X POST https://api.faces.sh/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "head:logician@gpt-5.4",
+    "messages": [
+      {"role": "user", "content": "Find the flaw in this argument: ..."}
+    ]
+  }'
+```
+
+The handle works identically on all three chat endpoints (`/v1/chat/completions`, `/v1/messages`, `/v1/responses`) and behaves just like one of your own faces — the persona is injected automatically, and your account is billed for the inference. See [Model addressing](/guides/chat#model-override-syntax) for the full grammar.
+
+<Warning>
+  Always include `@<model>` when chatting a system face — e.g. `head:logician@gpt-5.4`. System faces don't carry a `default_model`, so the bare handle `head:logician` returns **`400`** ("no default_model set"). Pick any model from [`/v1/models`](/guides/chat#supported-models).
+</Warning>
+
+---
+
+## Billing
+
+| What | Who pays |
+| --- | --- |
+| Inference (chatting a system face) | **The calling account** — your credits, per token, same rates as any other model. |
+| Compiling / maintaining the system face | Faces. You never pay to keep a system face compiled. |
+
+OAuth routing and the [Connect plan](/guides/oauth) work the same way for system faces as for your own — they key off *your* account, not the system face.
