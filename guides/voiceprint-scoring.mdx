@@ -1,0 +1,132 @@
+---
+title: Voiceprint Scoring
+description: Measure how closely a face writes like a specific person.
+---
+
+# Voiceprint Scoring
+
+Voiceprint scoring answers one question: **how closely does a face write like a specific person?**
+
+You give the service a face and a set of that person's real writing (e.g. sent emails), and it returns two 0–100 scores describing how close the face's writing is to the real person. Scoring is deterministic and reproducible, so you can measure the effect of a change (a new persona, an updated system prompt) as a before/after.
+
+Scoring runs as an asynchronous job: you start it, then poll for the result.
+
+<Note>
+Scoring works on **any** face — a single face, a [published](/guides/system-faces) `owner:alias`, or a [run-time composite](/guides/synthetic-faces#run-time-composites-compose-on-the-fly) like `(voiceprint | self)`. The face and any of its operands must be resolvable by you.
+</Note>
+
+---
+
+## The two scores
+
+| Score | Meaning |
+|-------|---------|
+| **VCI** — Voice Closeness Index | How close the face writes to the real person, on a 0–100 scale. **100 means the face's writing is indistinguishable from the person's.** Higher is better. |
+| **VFI** — Voice Fidelity Index | How far the face's writing has moved from a generic model baseline **toward** the real person, 0–100. Higher means more of the person's voice is captured. |
+
+Use **VCI** as the headline "how close are we" number and **VFI** to track improvement from a generic baseline. The response may include additional diagnostic fields; treat `VCI` and `VFI` as the stable, supported outputs.
+
+---
+
+## Start a scoring run
+
+`POST /v1/voiceprint/score` returns immediately with a `job_id` (HTTP **202**).
+
+```bash
+curl -X POST https://api.faces.sh/v1/voiceprint/score \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "face": "(voiceprint | self)",
+    "model": "gpt-5.4-mini",
+    "emails": [
+      {"id": "m1", "text": "hey, can we push the review to friday? thurs is packed. -c"},
+      {"id": "m2", "text": "thanks for the deck — drop slide 4, it repeats slide 2. -c"}
+    ]
+  }'
+```
+
+```json
+{ "job_id": "4e13bf03-fbc1-4ad0-92ae-16984e2f9a1d", "status": "queued" }
+```
+
+### Request fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `face` | yes | The face to score. Any spec: `"alias"`, `"owner:alias"`, or a union `"(voiceprint \| self)"`. |
+| `emails` | yes | The person's real writing to score against — a list of `{ "id": string, "text": string }`. Provide **at least 10**; ~100 gives a well-posed measurement. |
+| `model` | no | The model used internally to generate comparison drafts. Default `gpt-5.4-mini`. |
+| `oauth_only` | no | If `true`, only run when a **free** model route is available (see [Cost](#cost)); never fall back to a billed route. Default `false`. |
+| `author_corpus` | no | Optional additional samples of the person's writing used as a reference; defaults to `emails`. |
+
+Provide the person's authentic, unedited writing. Quoted reply chains, signatures, and forwarded text dilute the signal.
+
+---
+
+## Poll for the result
+
+`GET /v1/voiceprint/score/{job_id}` returns the current status, and the report once the job is `done`.
+
+```bash
+curl https://api.faces.sh/v1/voiceprint/score/JOB_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+While running:
+
+```json
+{ "job_id": "4e13bf03-...", "status": "forging", "progress": { "pairs_total": 100, "pairs_done": 42 } }
+```
+
+When finished:
+
+```json
+{
+  "job_id": "4e13bf03-...",
+  "status": "done",
+  "progress": { "pairs_total": 100, "pairs_done": 100 },
+  "report": {
+    "VCI": 88.0,
+    "VFI": 74.0,
+    "n_pairs": 96
+  }
+}
+```
+
+`status` is one of `queued`, `forging`, `scoring`, `done`, or `failed`. A job you don't own returns **404** (job ids are not enumerable). `n_pairs` is the number of writing samples the final score is based on.
+
+<Note>
+Scores are **reproducible**: the same face and the same emails produce the same numbers, so a change in VCI/VFI reflects a change in the face, not run-to-run noise.
+</Note>
+
+---
+
+## Cost
+
+Scoring generates comparison drafts internally, which uses model inference.
+
+- **Connect plan with a linked ChatGPT account:** when you use a compatible model (like the default `gpt-5.4-mini`), the drafts are generated through your ChatGPT subscription and scoring is **free**. Set `oauth_only: true` to guarantee no billed fallback — useful for large runs.
+- **Otherwise:** draft generation is billed to your account per token, the same as any other inference. See [Billing](/guides/billing).
+
+A run generates several drafts per email, so for a large corpus prefer a free (OAuth) model or expect proportional token usage.
+
+---
+
+## Errors
+
+| Status | Cause |
+|--------|-------|
+| `400` | Unsupported `model` (see [`GET /v1/models`](/api-reference/openapi)). |
+| `404` | The `face` (or a union operand) isn't resolvable by you; or an unknown `job_id`. |
+| `422` | Fewer than 10 emails supplied. |
+| job `status: "failed"` | Something went wrong mid-run; the `error` field describes it (e.g. too few usable emails, or the selected model route was unavailable). |
+
+---
+
+## Typical flow
+
+1. `POST /v1/voiceprint/score` with the face and the person's emails → get a `job_id`.
+2. Poll `GET /v1/voiceprint/score/{job_id}` every few seconds until `status` is `done` or `failed`.
+3. Read `report.VCI` / `report.VFI`.
+4. Change the face (e.g. update its [`profile_addendum`](/guides/faces#profile-addendum)) and score again to measure the difference.

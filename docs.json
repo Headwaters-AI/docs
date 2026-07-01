@@ -43,6 +43,7 @@
               "guides/chat",
               "guides/compile",
               "guides/synthetic-faces",
+              "guides/voiceprint-scoring",
               "guides/billing",
               "guides/oauth"
             ]
