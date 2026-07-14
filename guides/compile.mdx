@@ -150,6 +150,44 @@ Deleting a compiled document removes its contribution from the face's knowledge 
 
 ---
 
+## Read-only documents and threads
+
+Some documents and threads are **read-only**. A read-only item is frozen: you can read it, but its contents can't be changed. Locking a source set this way keeps it stable, so it can't drift underneath work that depends on it.
+
+Every document and thread response includes a `read_only` field. It defaults to `false`; when it's `true`, the item is locked:
+
+```json
+{
+  "document_id": "abc123",
+  "alias": "alice",
+  "label": "Sent emails",
+  "read_only": true
+}
+```
+
+| Action on a locked item | Result |
+|-------------------------|--------|
+| Read it (`GET`, list) | Works — the response shows `read_only: true` |
+| Change its content, label, or messages | Refused with `409` |
+| Delete it | Still allowed |
+
+Attempting to edit a locked item returns `409` with a message explaining why:
+
+```bash
+curl -X PATCH https://api.faces.sh/v1/compile/documents/DOC_ID \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "new text"}'
+```
+
+```json
+{ "detail": "This document is read-only and cannot be edited." }
+```
+
+A locked thread behaves the same way. Read the `read_only` field before offering edit actions in a UI — deletion stays available even when an item is locked.
+
+---
+
 ## Uploading threads
 
 A **thread** is a multi-speaker conversation transcript. Upload a text file with `Speaker Name: message` format:
