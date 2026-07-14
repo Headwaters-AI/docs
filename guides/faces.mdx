@@ -217,6 +217,47 @@ PATCH also accepts `description`, `profile_addendum`, `formula`, `basic_facts`, 
 
 ---
 
+## Lock a face
+
+Locking a face freezes it. While locked, the face and everything it owns can still be **read and chatted with**, but **nothing can be changed** — every write is refused. Use it to protect a face you don't want edited.
+
+Toggle the lock with a single call (owner only):
+
+```bash
+# Lock
+curl -X PATCH https://api.faces.sh/v1/faces/FACE_ALIAS/lock \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"read_only": true}'
+
+# Unlock
+curl -X PATCH https://api.faces.sh/v1/faces/FACE_ALIAS/lock \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"read_only": false}'
+```
+
+```json
+{ "alias": "FACE_ALIAS", "read_only": true, "affected": ["FACE_ALIAS"] }
+```
+
+Every face response (single and list) includes a `read_only` boolean, defaulting to `false`, so you can read the current state without toggling. `affected` lists the aliases whose state changed — this includes the face's hidden voiceprint, so a locked face's voice can't be rebuilt while it's frozen.
+
+### What a lock blocks
+
+When a face is locked, any write to it or to anything it owns is refused with `409`:
+
+| Blocked while locked | Still allowed |
+|----------------------|---------------|
+| Editing the face — name, description, basic facts, model, and the rest | Reading the face, its documents, and its threads |
+| Adding, editing, compiling, or deleting its documents and threads | Chatting with the face (inference) |
+| Uploading or importing new source material | Unlocking it |
+| Deleting the face itself | |
+
+To delete a locked face, unlock it first — unlocking is the one change a locked face always accepts.
+
+---
+
 ## Delete a face
 
 ```bash
