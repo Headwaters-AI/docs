@@ -40,6 +40,7 @@
               "guides/faces",
               "guides/system-faces",
               "guides/teams",
+              "guides/workspaces",
               "guides/chat",
               "guides/compile",
               "guides/synthetic-faces",

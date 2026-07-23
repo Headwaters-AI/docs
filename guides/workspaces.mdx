@@ -1,0 +1,161 @@
+---
+title: Workspaces
+description: Containers that scope which faces, tools, and members an agent works with.
+---
+
+# Workspaces
+
+A **workspace** is a container you work inside. It holds a name, open-ended `settings`, and a set of members. The caller who creates a workspace is its **owner** — the only account that can rename it, change its settings, or delete it.
+
+Each workspace has two kinds of state:
+
+- **Shared** — the name, settings, and member list, visible to every member.
+- **Per-member** — each member's own configuration inside the workspace (their `self_face_alias`, `agent_face_alias`, `model`, and `identities`).
+
+<Note>
+All workspace endpoints require `Authorization: Bearer YOUR_API_KEY`. The acting account is always taken from the key.
+</Note>
+
+---
+
+## Create a workspace
+
+`kind` is `"personal"` or `"shared"`. `settings` is optional, open-ended JSON (≤ 16 KB).
+
+```bash
+curl -X POST https://api.faces.sh/v1/workspaces \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Acme Deal Room", "kind": "shared", "settings": {"color": "amber", "default_model": "gpt-5.6-terra"}}'
+```
+
+```json
+{
+  "id": "451d6795-ed3b-47b7-a677-7dca3b407399",
+  "name": "Acme Deal Room",
+  "kind": "shared",
+  "settings": { "color": "amber", "default_model": "gpt-5.6-terra" },
+  "member_count": 1,
+  "created_at": "2026-07-23T18:59:19.051568",
+  "updated_at": "2026-07-23T18:59:19.051568"
+}
+```
+
+Creating with `kind: "personal"` is **idempotent per account**: if you already have a personal workspace, the existing one is returned unchanged. Use it as a default container that always exists.
+
+---
+
+## List your workspaces
+
+Returns every workspace you own or are a member of.
+
+```bash
+curl https://api.faces.sh/v1/workspaces \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{
+  "data": [
+    { "id": "451d6795-...", "name": "Acme Deal Room", "kind": "shared", "member_count": 1, "settings": {}, "created_at": "...", "updated_at": "..." }
+  ]
+}
+```
+
+---
+
+## Read a single workspace
+
+```bash
+curl https://api.faces.sh/v1/workspaces/WORKSPACE_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Callers who are not a member get **`404`** (not `403`) — the API does not reveal the existence of workspaces you are not in.
+
+---
+
+## Update a workspace
+
+Owner only. `settings` is **shallow-merged**: keys you send are set or overwritten; keys you omit are left untouched.
+
+```bash
+curl -X PATCH https://api.faces.sh/v1/workspaces/WORKSPACE_ID \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Acme — Closed", "settings": {"icon": "briefcase"}}'
+```
+
+Sending `{"settings": {"icon": "briefcase"}}` adds `icon` without removing existing keys like `color`.
+
+---
+
+## Delete a workspace
+
+Owner only.
+
+```bash
+curl -X DELETE https://api.faces.sh/v1/workspaces/WORKSPACE_ID \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Deleting a workspace removes only the container and its membership. Members' faces and their own content are not touched.
+
+---
+
+## Members
+
+### List members
+
+Returns every member with their per-member configuration. Readable only by members of the workspace.
+
+```bash
+curl https://api.faces.sh/v1/workspaces/WORKSPACE_ID/members \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```json
+{
+  "data": [
+    {
+      "iam_id": "376c4e36-2811-4f97-baeb-0e53200c05a7",
+      "role": "owner",
+      "status": "active",
+      "self_face_alias": "troy",
+      "agent_face_alias": null,
+      "model": "gpt-5.6-terra",
+      "identities": { "google": "troy@corvid.co", "github": "troyco" },
+      "joined_at": "2026-07-23T19:00:16.389816"
+    }
+  ]
+}
+```
+
+`identities` is a flat map of provider handles a member publishes so other members can address shares to them. It is visible only to co-members.
+
+### Update your own membership
+
+Set your own per-member configuration. You can send any subset; omitted fields are left unchanged.
+
+```bash
+curl -X PATCH https://api.faces.sh/v1/workspaces/WORKSPACE_ID/members/me \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"self_face_alias": "troy", "model": "gpt-5.6-terra", "identities": {"google": "troy@corvid.co"}}'
+```
+
+`identities` must be a flat map of strings (≤ 16 KB).
+
+---
+
+## Quick reference
+
+| Method | Path | Who can call |
+| --- | --- | --- |
+| `POST` | `/v1/workspaces` | any authenticated user |
+| `GET` | `/v1/workspaces` | any authenticated user |
+| `GET` | `/v1/workspaces/{id}` | member |
+| `PATCH` | `/v1/workspaces/{id}` | owner |
+| `DELETE` | `/v1/workspaces/{id}` | owner |
+| `GET` | `/v1/workspaces/{id}/members` | member |
+| `PATCH` | `/v1/workspaces/{id}/members/me` | member |
