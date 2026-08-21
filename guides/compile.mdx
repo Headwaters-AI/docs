@@ -81,7 +81,7 @@ null → "preparing" → "syncing" → "synced"
 | `"preparing"` | Extracting knowledge from text chunks |
 | `"syncing"` | Writing extracted knowledge to the graph |
 | `"synced"` | Compilation complete — stop polling |
-| `"paused"` | Compilation paused by user — progress preserved, call `/make` to resume |
+| `"paused"` | Compilation stopped at a user's request — progress preserved, call `/make` to resume |
 | `"stalled"` | Temporary API failure — progress saved, call `/make` again to resume from where it left off |
 | `"failed"` | Unrecoverable error — stop polling |
 
@@ -102,11 +102,42 @@ Billing (compile quota or credit deduction) is handled automatically when sync c
 
 | Action | Endpoint | Effect |
 |--------|----------|--------|
-| Pause | `POST /compile/threads/{id}/pause` | Stop after current chunk. Progress preserved. Resume with `/make`. |
-| Reset | `POST /compile/threads/{id}/reset` | Wipe all extraction progress. Source data preserved. Fresh `/make`. |
+| Pause | `POST /compile/threads/{id}/pause` | Ask the compile to stop. It finishes the chunk it is on, then stops. Progress preserved. Resume with `/make`. |
+| Reset | `POST /compile/threads/{id}/reset` | Stop the compile and wipe its progress. Source data preserved. Fresh `/make` starts from the beginning. |
 | Delete | `DELETE /compile/threads/{id}` | Remove thread entirely. |
 
 Pause and reset work on documents too (`/compile/documents/{id}/pause` and `/reset`).
+
+#### Pause is a request, not an immediate stop
+
+A compile is doing work when you pause it, so pausing takes effect at the next chunk
+boundary rather than instantly. The endpoint tells you the request was accepted:
+
+```json
+{ "document_id": "doc-uuid", "status": "pausing" }
+```
+
+Poll `prepare_status` to know when it has actually stopped — it becomes `"paused"`
+once the compile has come to rest, usually within a few seconds:
+
+```bash
+curl "https://api.faces.sh/v1/compile/documents/DOC_ID?status_only=true" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+`chunks_completed` at that point is exactly how much work is banked. A later `/make`
+resumes from there rather than starting over, so nothing already processed is paid
+for twice.
+
+<Note>
+  The pause response previously returned `"status": "paused"`. It now returns
+  `"pausing"`, because the compile has been asked to stop rather than already
+  stopped. If you branch on this response, treat it as an acknowledgement and read
+  `prepare_status` for the real state. Polling `prepare_status` needs no change.
+</Note>
+
+Resetting a running compile stops it as well — the same next-chunk-boundary rule
+applies, and the progress is cleared rather than kept.
 
 ### Lightweight polling
 
