@@ -392,10 +392,10 @@ The asymmetry on removals mirrors `DELETE /v1/teams/{id}/members/{iam}`: a membe
 Upload documents, transcripts, or threads to be compiled into the face.
 
 ```bash
-# Text or PDF document
+# Text, PDF, or Word document
 curl -X POST https://api.faces.sh/v1/faces/alice/upload \
   -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "file=@interview.pdf" \
+  -F "file=@interview.docx" \
   -F "type=document"
 
 # Pre-written transcript (plain text)
@@ -409,13 +409,34 @@ curl -X POST https://api.faces.sh/v1/faces/alice/upload \
 
 | Type | Formats |
 |------|---------|
-| Document | `.txt`, `.pdf` |
+| Document | `.txt`, `.md`, `.csv`, `.json`, `.jsonl`, `.xml`, `.html`, `.rst`, `.pdf`, `.docx` |
 | Thread | `.txt` (structured transcript) |
 | Audio/Video | `.mp3`, `.mp4`, `.wav`, `.m4a`, `.webm`, and more |
 
-Audio and video files are transcribed asynchronously — the upload returns **202** with `prepare_status: "transcribing"`. Poll the thread or document GET endpoint until `prepare_status` becomes `null` (ready to review) or `"failed"`. Text and PDF uploads return 200 synchronously.
+Word (`.docx`) and PDF files have their text extracted for you — upload the file as
+it is, no conversion needed.
+
+Audio and video files are transcribed asynchronously — the upload returns **202** with `prepare_status: "transcribing"`. Poll the thread or document GET endpoint until `prepare_status` becomes `null` (ready to review) or `"failed"`. Text, PDF, and Word uploads return 200 synchronously.
 
 To get the raw transcript without creating a compile thread/document, use the `/transcribe` endpoint instead.
+
+#### Word documents
+
+Paragraph order is preserved, along with the blank lines between paragraphs and any
+tabs or line breaks inside one — so a transcript that uses tabs to mark who is
+speaking keeps its shape. Table cells are read in document order.
+
+Only document text is read. Images and text boxes are ignored, so a `.docx` that is
+just a scanned page arrives empty and is rejected with `422`.
+
+| If the file is | You get | What to do |
+|----------------|---------|------------|
+| a legacy `.doc` | `400` | Open it in Word or Pages and save as `.docx` |
+| password-protected or corrupt | `400` | Remove the password and upload again |
+| a `.docx` with no text in it | `422` | Check the file — images and text boxes are not read |
+
+A `400` means the file itself is wrong and a different file is needed. A `422` means
+the file was read fine and had nothing in it. Neither is worth retrying as-is.
 
 ---
 
