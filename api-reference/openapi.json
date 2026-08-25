@@ -1443,7 +1443,7 @@
           "Faces"
         ],
         "summary": "Diff Faces",
-        "description": "Compare how similar several of your faces are to one another. Returns a symmetric matrix of similarity scores \u2014 overall, and along each dimension faces are compared on. Scores only. Requires at least two faces, all owned by you.",
+        "description": "Compare the centroids of several of your faces. Returns a symmetric matrix of cosine similarity scores \u2014 overall, and along each dimension faces are compared on. Raw vectors are never exposed. Requires at least two faces, all owned by you.",
         "operationId": "diff_faces_v1_faces_diff_get",
         "parameters": [
           {
@@ -1704,7 +1704,7 @@
           "Faces"
         ],
         "summary": "Get Face Neighbors",
-        "description": "Find the k nearest (or furthest) owned faces by similarity.\n\nScoped to faces owned by the authenticated user.\nThe queried face must also be owned by the user.\nRaw vectors are never exposed \u2014 only cosine similarity scores.",
+        "description": "Find the k nearest (or furthest) of your faces by centroid similarity. Scores only; raw vectors are never exposed.",
         "operationId": "get_face_neighbors_v1_faces__face_id__neighbors_get",
         "parameters": [
           {
@@ -1737,11 +1737,11 @@
             "schema": {
               "type": "string",
               "pattern": "^(face|beta|delta|epsilon)$",
-              "description": "Which dimension to compare on",
+              "description": "Which centroid dimension to compare on: `face` for the overall score, or a position in the components array.",
               "default": "face",
               "title": "Component"
             },
-            "description": "Which dimension to compare on"
+            "description": "Which centroid dimension to compare on: `face` for the overall score, or a position in the components array."
           },
           {
             "name": "direction",

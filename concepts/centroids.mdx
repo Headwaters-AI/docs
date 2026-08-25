@@ -1,14 +1,14 @@
 ---
-title: Similarity
-description: Compare faces to each other, and find the ones most or least alike.
+title: Centroids
+description: Face similarity, neighbors, and the geometric structure of compiled faces.
 ---
 
-# Similarity
+# Centroids
 
-Every compiled face can be compared to your other compiled faces. Faces sit in a
-shared space built from what they were compiled on, so you can ask which of your
-faces are alike, which are distinct, and how alike along several dimensions rather
-than just overall.
+Every compiled face has a **centroid** — a position in a high-dimensional embedding
+space summarising what the face was compiled on. Centroids are what make similarity
+search possible: you can ask which of your faces are alike, which are distinct, and
+how alike along several dimensions rather than just overall.
 
 Two endpoints use it: one compares a set of faces you name, the other searches for
 the closest or furthest matches to a single face.
@@ -98,12 +98,12 @@ an error in your request.
 
 ---
 
-## When comparisons are available
+## When centroids are updated
 
-A face becomes comparable once a sync completes. A face that has never synced, or
-whose sources have all been deleted, has nothing to compare and is left out of
-searches. [Synthetic faces](/guides/synthetic-faces) are assembled per request and
-are not included either.
+A face's centroid is recalculated each time a sync completes. A face that has never synced, or
+whose sources have all been deleted, has no centroid and is left out of
+searches. [Synthetic faces](/guides/synthetic-faces) have no pre-computed centroid — they are
+assembled per request — and are not included either.
 
 ---
 
