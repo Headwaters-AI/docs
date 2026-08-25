@@ -83,12 +83,12 @@ shaped for it.
 {
   "model": "alice",
   "messages": [{"role": "user", "content": "reply to this and keep it short"}],
-  "kind": "email"
+  "medium": "email"
 }
 ```
 
-`register` is accepted as a synonym of `kind`; they do the same thing, so send
-whichever reads better in your code.
+One field, one spelling. `medium` says what the artefact IS — an email, a post,
+speech. It is not a tone or style control.
 
 ### Accepted values
 
@@ -110,7 +110,7 @@ resolve to the values above.
 
 ### If you leave it out
 
-Nothing breaks. When you do not declare a kind, we infer one from the message you
+Nothing breaks. When you do not declare a medium, we infer one from the message you
 sent. Inference is a guess, and it is wrong sometimes — an integration that already
 *knows* it is composing an email gets a better result by saying so than by leaving
 us to work it out. Declare it when you know it; omit it when you genuinely do not.

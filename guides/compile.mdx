@@ -42,14 +42,14 @@ curl -X POST https://api.faces.sh/v1/compile/documents/DOC_ID/make \
 
 ### Declaring what a document is
 
-`kind` is optional and tells us what sort of writing the document contains:
+`medium` is optional and tells us what sort of writing the document contains:
 
 ```json
 {
   "alias": "alice",
   "label": "conference-talk",
   "content": "...",
-  "kind": "conversation"
+  "medium": "conversation"
 }
 ```
 
@@ -64,7 +64,7 @@ Accepted values are the same set the chat API uses: `email`, `text message`,
 `sms` and `op-ed` are folded automatically. An unrecognised value is rejected with
 `422` listing the valid ones, rather than being guessed at.
 
-`kind` can also be set later with `PATCH /v1/compile/documents/{id}`, which applies
+`medium` can also be set later with `PATCH /v1/compile/documents/{id}`, which applies
 from the next compile.
 
 ### Polling for progress
