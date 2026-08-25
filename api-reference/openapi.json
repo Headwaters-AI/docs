@@ -333,7 +333,7 @@
           "Authentication"
         ],
         "summary": "Register",
-        "description": "Register a new IAM account with wallet signature and invite key.\n\nCreates a fully independent IAM using atomic JanusGraph operation.\n\nFlow:\n1. Validate invite key (exists, unused, not expired)\n2. Verify message signature matches wallet address\n3. Check username (email) is unique\n4. Get creator IAM (who generated the invite key)\n5. Atomically create IAM with all relationships and guild in JanusGraph\n6. Mark invite key as used\n7. Check admin status (should be True)\n8. Generate JWT token\n9. Return token and IAM info\n\nFinal relationship structure (fully independent):\n- IAM --OWNS--> IAM (self-owned)\n- creator --CREATED--> IAM (creator relationship)\n- creator --OWNED--> IAM (historical ownership)\n- NO ADMINISTERS edges (fully independent admin)\n- IAM has own Guild (username as guild name)",
+        "description": "Register a new account with a wallet signature and an invite key. Requires a valid, unused invite key and a signature proving control of the wallet address. The email must not already be registered. Returns an authentication token and the new account.",
         "operationId": "register_auth_register_post",
         "requestBody": {
           "content": {
@@ -1443,7 +1443,7 @@
           "Faces"
         ],
         "summary": "Diff Faces",
-        "description": "Compare geometric centroids of multiple owned faces.\n\nReturns a symmetric pairwise cosine similarity matrix for all 4 components\n(face, beta, delta, epsilon). Raw vectors are never exposed.\n\nAll requested faces must be owned by the authenticated user.\nRequires at least 2 faces.",
+        "description": "Compare how similar several of your faces are to one another. Returns a symmetric matrix of similarity scores \u2014 overall, and along each dimension faces are compared on. Scores only. Requires at least two faces, all owned by you.",
         "operationId": "diff_faces_v1_faces_diff_get",
         "parameters": [
           {
@@ -1647,7 +1647,7 @@
           "Faces"
         ],
         "summary": "Delete Face",
-        "description": "Delete a face and all its associated data.\n\nDrops the IAM vertex from JanusGraph (auto-removing all its edges) and\ndeletes its Postgres rooms/documents and Qdrant face centroid. Beta,\ndelta, and alpha vertices are intentionally left as orphans \u2014 they can be\nrediscovered via similarity search and reused by future faces.",
+        "description": "Delete a face and all its associated data.\n\nIrreversible.",
         "operationId": "delete_face_v1_faces__face_id__delete",
         "parameters": [
           {
@@ -1704,7 +1704,7 @@
           "Faces"
         ],
         "summary": "Get Face Neighbors",
-        "description": "Find the k nearest (or furthest) owned faces by centroid similarity.\n\nScoped to faces owned by the authenticated user.\nThe queried face must also be owned by the user.\nRaw vectors are never exposed \u2014 only cosine similarity scores.",
+        "description": "Find the k nearest (or furthest) owned faces by similarity.\n\nScoped to faces owned by the authenticated user.\nThe queried face must also be owned by the user.\nRaw vectors are never exposed \u2014 only cosine similarity scores.",
         "operationId": "get_face_neighbors_v1_faces__face_id__neighbors_get",
         "parameters": [
           {
@@ -1737,11 +1737,11 @@
             "schema": {
               "type": "string",
               "pattern": "^(face|beta|delta|epsilon)$",
-              "description": "Centroid component",
+              "description": "Which dimension to compare on",
               "default": "face",
               "title": "Component"
             },
-            "description": "Centroid component"
+            "description": "Which dimension to compare on"
           },
           {
             "name": "direction",
@@ -2648,7 +2648,7 @@
           "Compile - Threads"
         ],
         "summary": "Sync Compile Thread",
-        "description": "Sync (archive) a compile thread to the knowledge graph.\n\nUploaded/imported threads (compile_upload, compile_import) have their token\nquota charged here at sync time \u2014 matching the document sync behaviour.\nLive interview threads (compile_v1, compile_interview) are charged per user\nmessage in send_compile_message, so no additional charge is applied here.",
+        "description": "Sync (archive) a compile thread to the face.\n\nUploaded/imported threads (compile_upload, compile_import) have their token\nquota charged here at sync time \u2014 matching the document sync behaviour.\nLive interview threads (compile_v1, compile_interview) are charged per user\nmessage in send_compile_message, so no additional charge is applied here.",
         "operationId": "sync_compile_thread_v1_compile_threads__thread_id__sync_post",
         "parameters": [
           {
@@ -2776,7 +2776,7 @@
           "Compile - Threads"
         ],
         "summary": "Delete Compile Thread",
-        "description": "Delete a compile thread and remove its contributions from the knowledge graph.",
+        "description": "Delete a compile thread and remove its contributions from the face.",
         "operationId": "delete_compile_thread_v1_compile_threads__thread_id__delete",
         "parameters": [
           {
@@ -3170,7 +3170,7 @@
           "Compile - Documents"
         ],
         "summary": "Delete Compile Document",
-        "description": "Delete a compile document and remove its contributions from the knowledge graph.",
+        "description": "Delete a compile document and remove its contributions from the face.",
         "operationId": "delete_compile_document_v1_compile_documents__doc_id__delete",
         "parameters": [
           {
@@ -3344,7 +3344,7 @@
           "Compile - Documents"
         ],
         "summary": "Sync Compile Document",
-        "description": "Sync (archive) a compile document to the knowledge graph. Charges token quota.",
+        "description": "Sync (archive) a compile document to the face. Charges token quota.",
         "operationId": "sync_compile_document_v1_compile_documents__doc_id__sync_post",
         "parameters": [
           {
@@ -4449,77 +4449,6 @@
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/graph": {
-      "get": {
-        "tags": [
-          "Graph"
-        ],
-        "summary": "Get Graph",
-        "description": "Return the full knowledge graph for a face. Admin only.",
-        "operationId": "get_graph_v1_graph_get",
-        "parameters": [
-          {
-            "name": "face",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "account_username:face_username (e.g. jonyfive:troy)",
-              "title": "Face"
-            },
-            "description": "account_username:face_username (e.g. jonyfive:troy)"
-          },
-          {
-            "name": "include_edges",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "description": "Include beta_edges and delta_edges (PARENT_OF hierarchy)",
-              "default": false,
-              "title": "Include Edges"
-            },
-            "description": "Include beta_edges and delta_edges (PARENT_OF hierarchy)"
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7724,32 +7653,6 @@
         ],
         "title": "FaceCompileStats"
       },
-      "FaceComponentCounts": {
-        "properties": {
-          "alpha": {
-            "type": "integer",
-            "title": "Alpha",
-            "default": 0
-          },
-          "beta": {
-            "type": "integer",
-            "title": "Beta",
-            "default": 0
-          },
-          "delta": {
-            "type": "integer",
-            "title": "Delta",
-            "default": 0
-          },
-          "epsilon": {
-            "type": "integer",
-            "title": "Epsilon",
-            "default": 0
-          }
-        },
-        "type": "object",
-        "title": "FaceComponentCounts"
-      },
       "FaceListResponse": {
         "properties": {
           "object": {
@@ -7939,7 +7842,12 @@
           "component_counts": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/FaceComponentCounts"
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "title": "Component Counts",
+                "description": "A count per kind of component, in a fixed positional order."
               },
               {
                 "type": "null"
@@ -7976,7 +7884,7 @@
           "owned_by"
         ],
         "title": "FaceObject",
-        "description": "Public representation of a user-created face (model IAM).\n\nThe face's unique slug is exposed as `alias` at the API boundary.\nInternally this maps to the IAM vertex's `username` property in JanusGraph."
+        "description": "Public representation of a face. The face's unique slug is exposed as `alias`."
       },
       "FaceTeamItem": {
         "properties": {
@@ -8478,7 +8386,12 @@
           "component_counts": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/FaceComponentCounts"
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "title": "Component Counts",
+                "description": "A count per kind of component, in a fixed positional order."
               },
               {
                 "type": "null"

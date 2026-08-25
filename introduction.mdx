@@ -7,7 +7,7 @@ description: Programmable personas for AI agents — as nuanced as real humans, 
 
 Faces are compiled soul documents. They give AI agents programmable personas as nuanced as real humans using fewer tokens.
 
-Source texts — interviews, essays, journals, transcripts, chat histories — are compiled into plaintext psychological primitives organized into four frequency bands of cognitive structure (epsilon, delta, alpha, beta) that define a coherent and complex persona. At inference time, the relevant components are retrieved and injected into the system prompt in a compressed form that conveys far more character per token than raw text.
+Source texts — interviews, essays, journals, transcripts, chat histories — are compiled into a compact representation of the persona. At inference time the parts relevant to the current conversation are retrieved and injected into the system prompt, conveying far more character per token than the raw text would.
 
 ## What you can do
 
@@ -16,7 +16,7 @@ Source texts — interviews, essays, journals, transcripts, chat histories — a
     Define a face, upload source texts, and manage your persona library.
   </Card>
   <Card title="Compile" icon="microchip" href="/guides/compile">
-    Compile source documents and threads into psychological primitives.
+    Compile source documents and threads into a face.
   </Card>
   <Card title="Chat" icon="message" href="/guides/chat">
     Run inference with any face using the chat API.
@@ -25,9 +25,9 @@ Source texts — interviews, essays, journals, transcripts, chat histories — a
 
 ## Key concepts
 
-- **Face** — A named persona identified by its alias, with compiled psychological primitives. Can be a person, character, or synthetic blend of multiple faces.
-- **Compile** — The process that transforms uploaded source texts into four named components loosely inspired by brainwave frequencies, ordered from most fundamental to most dynamic.
-- **Psychological primitives** — The minimal formal language our compiler produces. Compact, retrievable, and composable.
+- **Face** — A named persona identified by its alias, compiled from source material. Can be a person, character, or synthetic blend of multiple faces.
+- **Compile** — The process that turns uploaded source texts into a face, ready to be retrieved from at inference time.
+- **Components** — What compiling produces: compact, retrievable pieces of a persona. Counts are reported per face as an array.
 - **Synthetic faces** — Boolean combinations of existing faces (`alice | bob`, `expert & mentor`, etc.) composed on the fly without extra training.
 
 ## Get started

@@ -1,0 +1,114 @@
+---
+title: Similarity
+description: Compare faces to each other, and find the ones most or least alike.
+---
+
+# Similarity
+
+Every compiled face can be compared to your other compiled faces. Faces sit in a
+shared space built from what they were compiled on, so you can ask which of your
+faces are alike, which are distinct, and how alike along several dimensions rather
+than just overall.
+
+Two endpoints use it: one compares a set of faces you name, the other searches for
+the closest or furthest matches to a single face.
+
+---
+
+## Scores and dimensions
+
+A comparison returns an **overall** score under `face`, plus a `components` array of
+scores along the separate dimensions faces are compared on.
+
+The array is positional. Position N means the same dimension in every response, and
+positions are stable — new dimensions are appended and none are removed. A position
+is `null` when that dimension is not comparable for the pair, or when a score could
+not be computed; render both the same way.
+
+Scores are cosine similarity, from `-1` to `1`. Higher is more alike. The underlying
+representations are never returned, only the scores.
+
+---
+
+## Compare several faces
+
+```bash
+curl "https://api.faces.sh/v1/faces/diff?faces=alice,bob" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Returns a symmetric matrix. Self-comparisons are omitted. Every face must be owned by
+you, and at least two are required.
+
+```json
+{
+  "faces": ["alice", "bob"],
+  "similarity": {
+    "alice": { "bob": { "face": 0.69, "components": [null, 0.65, 0.72, null, null] } },
+    "bob":   { "alice": { "face": 0.69, "components": [null, 0.65, 0.72, null, null] } }
+  }
+}
+```
+
+---
+
+## Find similar faces
+
+```bash
+curl "https://api.faces.sh/v1/faces/FACE_ALIAS/neighbors?k=5&direction=nearest" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `k` | 5 | How many faces to return |
+| `component` | `face` | `face` for the overall score, or a **position** in the `components` array to compare on that dimension alone |
+| `direction` | `nearest` | `nearest` for most similar, `furthest` for most dissimilar |
+
+Searches only faces you own, and never returns the query face itself.
+
+```json
+{
+  "face": "alice",
+  "component": "face",
+  "direction": "nearest",
+  "k": 2,
+  "neighbors": [
+    { "face": "bob",   "similarity": 0.83 },
+    { "face": "carol", "similarity": 0.71 }
+  ]
+}
+```
+
+`component` echoes back whatever you sent.
+
+### When a position is not available
+
+Asking for a position that is not comparable returns `422` and tells you which
+positions are:
+
+```json
+{ "detail": "Unknown component position 4. Comparable positions are: 1, 2, 3." }
+```
+
+Asking for a valid position on a face that has nothing there also returns `422` —
+that face simply has no data on that dimension yet, which is the same thing the
+`null` at that index in `/faces/diff` is telling you. Treat it as "no data", not as
+an error in your request.
+
+---
+
+## When comparisons are available
+
+A face becomes comparable once a sync completes. A face that has never synced, or
+whose sources have all been deleted, has nothing to compare and is left out of
+searches. [Synthetic faces](/guides/synthetic-faces) are assembled per request and
+are not included either.
+
+---
+
+## Use cases
+
+- **Cluster your library** — see which faces are naturally alike or distinct.
+- **Quality check** — after compiling a new face, confirm it is actually distinct
+  from the ones you already have rather than a near-duplicate.
