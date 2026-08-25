@@ -84,7 +84,7 @@ curl -X POST https://api.faces.sh/v1/chat/completions \
 - Referenced faces must be concrete (not synthetic themselves).
 - The formula must be a valid boolean expression using `|`, `&`, `-`, `^`, parentheses, and valid aliases.
 
-Invalid formulas return `422 Unprocessable Entity` with a description of the problem.
+Invalid formulas return `422` with a description of the problem.
 
 ---
 
@@ -104,7 +104,7 @@ The result is a coherent persona that blends the source faces according to the f
 ## Use cases
 
 - **Blended expertise**: `designer | engineer` — draw on both knowledge domains in a single persona.
-- **Constrained character**: `alice & mentor` — only the facets of Alice that overlap with a mentor archetype.
+- **Constrained character**: `alice & mentor` — only the sides of Alice that also read as a mentor.
 - **Differenced persona**: `senior-dev - junior-dev` — the characteristics that distinguish a senior developer from a junior one.
 - **A/B testing**: Create `alice | bob` and `alice & bob` to compare unioned vs. intersected personas.
 
