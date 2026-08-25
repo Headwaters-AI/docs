@@ -40,6 +40,33 @@ curl -X POST https://api.faces.sh/v1/compile/documents/DOC_ID/make \
 }
 ```
 
+### Declaring what a document is
+
+`kind` is optional and tells us what sort of writing the document contains:
+
+```json
+{
+  "alias": "alice",
+  "label": "conference-talk",
+  "content": "...",
+  "kind": "conversation"
+}
+```
+
+**Supplying it produces a better face.** A transcript of someone speaking and an essay
+they wrote are not the same kind of writing, and a face compiled from material whose
+kind is known reflects that. Leaving it out is fine — the document compiles exactly as
+before — but say so when you know.
+
+Accepted values are the same set the chat API uses: `email`, `text message`,
+`social post`, `essay`, `academic paper`, `blog post`, `legal document`,
+`thread reply`, `conversation`. Common synonyms such as `transcript`, `interview`,
+`sms` and `op-ed` are folded automatically. An unrecognised value is rejected with
+`422` listing the valid ones, rather than being guessed at.
+
+`kind` can also be set later with `PATCH /v1/compile/documents/{id}`, which applies
+from the next compile.
+
 ### Polling for progress
 
 Poll `GET /v1/compile/documents/DOC_ID` every 2-3 seconds to track progress:
