@@ -32,7 +32,11 @@
         "groups": [
           {
             "group": "Get Started",
-            "pages": ["introduction", "quickstart", "authentication"]
+            "pages": [
+              "introduction",
+              "quickstart",
+              "authentication"
+            ]
           },
           {
             "group": "Guides",
@@ -79,6 +83,11 @@
     }
   },
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude"]
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
   }
 }

@@ -37,7 +37,7 @@ curl -X POST https://api.faces.sh/v1/chat/completions \
   }'
 ```
 
-The face's compiled psychological primitives and `basic_facts` are injected automatically into the system prompt. You do not need to manage this context yourself.
+The face's compiled material and `basic_facts` are injected automatically into the system prompt. You do not need to manage this context yourself.
 
 ---
 
@@ -70,6 +70,50 @@ The `model` field accepts these shapes on **all three endpoints** (`/v1/chat/com
 <Note>
   Model overrides always use the system API key — no user-stored credentials are required or used.
 </Note>
+
+---
+
+## Telling the face what you are writing
+
+A face writes differently for different occasions. If your application already knows
+what it is producing — an email, a text message, a post — say so, and the reply is
+shaped for it.
+
+```json
+{
+  "model": "alice",
+  "messages": [{"role": "user", "content": "reply to this and keep it short"}],
+  "medium": "email"
+}
+```
+
+One field, one spelling. `medium` says what the artefact IS — an email, a post,
+speech. It is not a tone or style control.
+
+### Accepted values
+
+| Value | Use for |
+|-------|---------|
+| `email` | Email, where greetings and sign-offs belong |
+| `text message` | SMS, iMessage and similar short exchanges |
+| `social post` | Public posts |
+| `essay` | Long-form prose |
+| `academic paper` | Scholarly writing |
+| `blog post` | Blog and newsletter writing |
+| `legal document` | Contracts and formal binding text |
+| `thread reply` | Forum and comment replies |
+| `conversation` | Speech: transcripts, dictation, interviews, calls |
+
+Common synonyms are accepted and folded automatically — `sms`, `tweet`, `article`,
+`op-ed`, `paper`, `contract`, `transcript`, `interview`, `dictation` and others all
+resolve to the values above.
+
+### If you leave it out
+
+Nothing breaks. When you do not declare a medium, we infer one from the message you
+sent. Inference is a guess, and it is wrong sometimes — an integration that already
+*knows* it is composing an email gets a better result by saying so than by leaving
+us to work it out. Declare it when you know it; omit it when you genuinely do not.
 
 ---
 

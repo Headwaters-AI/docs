@@ -124,7 +124,7 @@ curl "https://api.faces.sh/v1/faces?include=tags,teams,profile" \
       "default_model": "gpt-4o-mini",
       "profile_token_count": 712,
       "total_tokens_saved": 84210,
-      "component_counts": {"alpha": 18, "beta": 22, "delta": 11, "epsilon": 6},
+      "component_counts": [18, 22, 11, 6, 3],
       "compile_tokens_synced": 8200,
       "last_synced_at": "2026-04-22T16:24:05.932712",
       "...": "..."
@@ -139,9 +139,27 @@ curl "https://api.faces.sh/v1/faces?include=tags,teams,profile" \
 | --- | --- |
 | `profile_token_count` | Tokens in the compiled persona prompt rendered from this face. |
 | `total_tokens_saved` | Cumulative LLM tokens this face's compiled profile has avoided sending. |
-| `component_counts` | Per-primitive vertex count (`alpha`, `beta`, `delta`, `epsilon`) currently in the graph. |
+| `component_counts` | How many components of each kind the face currently has. See below. |
 | `compile_tokens_synced` | Tokens of source content currently synced into the graph. Decrements when sources are deleted. |
 | `last_synced_at` | ISO timestamp of the most recent compile sync, or `null` if the face has never been synced. |
+
+### Component counts
+
+`component_counts` is an array of numbers — a count per kind of component, in a fixed
+order:
+
+```json
+"component_counts": [18, 22, 11, 6, 3]
+```
+
+Sum it for a total. Read it positionally if you want the breakdown: position N always
+means the same kind, positions are never reordered or removed, and new kinds are
+appended to the end. Read it by iterating rather than assuming a length, and a future
+addition cannot break you.
+
+A face that has never compiled returns zeros rather than `null`, so a renderer needs
+no special case. The field itself is only present when requested with `?include=profile`.
+
 
 The list endpoint also accepts two filter parameters that compose:
 
@@ -241,7 +259,7 @@ curl -X PATCH https://api.faces.sh/v1/faces/FACE_ALIAS/lock \
 { "alias": "FACE_ALIAS", "read_only": true, "affected": ["FACE_ALIAS"] }
 ```
 
-Every face response (single and list) includes a `read_only` boolean, defaulting to `false`, so you can read the current state without toggling. `affected` lists the aliases whose state changed — this includes the face's hidden voiceprint, so a locked face's voice can't be rebuilt while it's frozen.
+Every face response (single and list) includes a `read_only` boolean, defaulting to `false`, so you can read the current state without toggling. `affected` lists the aliases whose state changed — everything belonging to the face freezes and thaws together.
 
 ### What a lock blocks
 
@@ -265,7 +283,7 @@ curl -X DELETE https://api.faces.sh/v1/faces/FACE_ALIAS \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Deleting a face drops its compiled psychological primitives and removes it from the centroid index. Documents compiled exclusively for this face are also removed.
+Deleting a face removes everything compiled from it, and it stops appearing in [centroid index](/concepts/centroids) results. Documents compiled exclusively for this face are also removed.
 
 ---
 

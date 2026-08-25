@@ -5,51 +5,47 @@ description: Face similarity, neighbors, and the geometric structure of compiled
 
 # Centroids
 
-Every compiled face has a **centroid** — a position in a high-dimensional embedding space that summarizes the face's psychological primitives. Centroids enable similarity search: you can find faces that are close to a given face, far from it, or compare multiple faces at once.
+Every compiled face has a **centroid** — a position in a high-dimensional embedding
+space summarising what the face was compiled on. Centroids are what make similarity
+search possible: you can ask which of your faces are alike, which are distinct, and
+how alike along several dimensions rather than just overall.
+
+Two endpoints use it: one compares a set of faces you name, the other searches for
+the closest or furthest matches to a single face.
 
 ---
 
-## Components
+## Scores and dimensions
 
-A centroid exposes three component vectors plus an aggregate, available for similarity search:
+A comparison returns an **overall** score under `face`, plus a `components` array of
+scores along the separate dimensions faces are compared on.
 
-| Component | Description |
-|-----------|-------------|
-| `face` | The aggregate position across all components |
-| `beta` | Captures the most dynamic and expressive patterns of the persona |
-| `delta` | Represents intermediate cognitive structures — more stable than beta, more active than epsilon |
-| `epsilon` | Reflects the deepest, most fundamental and enduring foundations of the persona |
+The array is positional. Position N means the same dimension in every response, and
+positions are stable — new dimensions are appended and none are removed. A position
+is `null` when that dimension is not comparable for the pair, or when a score could
+not be computed; render both the same way.
 
-Each component is embedded independently, so similarity can be measured globally (via `face`) or along a specific dimension.
+Scores are cosine similarity, from `-1` to `1`. Higher is more alike. The underlying
+representations are never returned, only the scores.
 
 ---
 
-## Compare multiple faces
+## Compare several faces
 
 ```bash
-curl "https://api.faces.sh/v1/faces/diff?faces=alice,bob,carol" \
+curl "https://api.faces.sh/v1/faces/diff?faces=alice,bob" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Returns pairwise cosine similarities between the listed faces across all components. All faces must be owned by you.
+Returns a symmetric matrix. Self-comparisons are omitted. Every face must be owned by
+you, and at least two are required.
 
 ```json
 {
-  "data": {
-    "pairs": [
-      {
-        "a": "alice", "b": "bob",
-        "similarity": { "face": 0.71, "beta": 0.68, "delta": 0.82, "epsilon": 0.54 }
-      },
-      {
-        "a": "alice", "b": "carol",
-        "similarity": { "face": 0.43, "beta": 0.39, "delta": 0.51, "epsilon": 0.31 }
-      },
-      {
-        "a": "bob", "b": "carol",
-        "similarity": { "face": 0.38, "beta": 0.42, "delta": 0.29, "epsilon": 0.44 }
-      }
-    ]
+  "faces": ["alice", "bob"],
+  "similarity": {
+    "alice": { "bob": { "face": 0.69, "components": [null, 0.65, 0.72, null, null] } },
+    "bob":   { "alice": { "face": 0.69, "components": [null, 0.65, 0.72, null, null] } }
   }
 }
 ```
@@ -59,44 +55,60 @@ Returns pairwise cosine similarities between the listed faces across all compone
 ## Find similar faces
 
 ```bash
-curl "https://api.faces.sh/v1/faces/FACE_ALIAS/neighbors?k=5&component=face&direction=nearest" \
+curl "https://api.faces.sh/v1/faces/FACE_ALIAS/neighbors?k=5&direction=nearest" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Parameters:
-
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `k` | 5 | Number of neighbors to return |
-| `component` | `face` | Which component to search: `face`, `beta`, `delta`, or `epsilon` |
+| `k` | 5 | How many faces to return |
+| `component` | `face` | `face` for the overall score, or a **position** in the `components` array to compare on that dimension alone |
 | `direction` | `nearest` | `nearest` for most similar, `furthest` for most dissimilar |
 
-Returns your owned faces sorted by similarity to the query face, excluding the query face itself.
+Searches only faces you own, and never returns the query face itself.
 
 ```json
 {
-  "data": {
-    "neighbors": [
-      { "alias": "bob", "similarity": 0.83 },
-      { "alias": "carol", "similarity": 0.71 }
-    ]
-  }
+  "face": "alice",
+  "component": "face",
+  "direction": "nearest",
+  "k": 2,
+  "neighbors": [
+    { "face": "bob",   "similarity": 0.83 },
+    { "face": "carol", "similarity": 0.71 }
+  ]
 }
 ```
+
+`component` echoes back whatever you sent.
+
+### When a position is not available
+
+Asking for a position that is not comparable returns `422` and tells you which
+positions are:
+
+```json
+{ "detail": "Unknown component position 4. Comparable positions are: 1, 2, 3." }
+```
+
+Asking for a valid position on a face that has nothing there also returns `422` —
+that face simply has no data on that dimension yet, which is the same thing the
+`null` at that index in `/faces/diff` is telling you. Treat it as "no data", not as
+an error in your request.
 
 ---
 
 ## When centroids are updated
 
-The centroid for a face is recalculated each time a sync completes successfully. If a face has never been synced, or if all its documents have been deleted, it has no centroid and is excluded from similarity searches.
-
-[Synthetic faces](/guides/synthetic-faces) do not have pre-computed centroids — they are assembled on the fly from their component faces and are not included in neighbor searches.
+A face's centroid is recalculated each time a sync completes. A face that has never synced, or
+whose sources have all been deleted, has no centroid and is left out of
+searches. [Synthetic faces](/guides/synthetic-faces) have no pre-computed centroid — they are
+assembled per request — and are not included either.
 
 ---
 
 ## Use cases
 
-- **Cluster your library**: find which of your faces are naturally similar or distinct.
-- **Quality check**: after compiling a new face, compare it against others to verify it has a distinct profile.
-- **Blend selection**: before creating a synthetic face, use `diff` to see which source faces have high overlap on the dimensions you care about.
-- **Furthest neighbor**: find the face in your library that is most unlike a given face — useful for contrast and counterpoint in multi-agent setups.
+- **Cluster your library** — see which faces are naturally alike or distinct.
+- **Quality check** — after compiling a new face, confirm it is actually distinct
+  from the ones you already have rather than a near-duplicate.
