@@ -5,7 +5,7 @@ description: Ready-to-use faces provided by Faces that any account can chat with
 
 # System Faces
 
-System faces are a curated set of compiled personas that **Faces provides for everyone** — you can chat with them straight away without creating or compiling a face of your own. They live under the platform `head` account and are addressed with the `head:` prefix, e.g. `head:logician`.
+System faces are a curated set of compiled personas that **Faces provides for everyone** — you can chat with them straight away without creating or compiling a face of your own. They live under the platform `head` account and are addressed with the `head:` prefix, e.g. `head:maestro`.
 
 You pay for inference exactly as you would for your own faces (the calling account's credits are charged). There is no charge to *use* a system face beyond the normal per-token inference cost.
 
@@ -14,7 +14,7 @@ You pay for inference exactly as you would for your own faces (the calling accou
 </Note>
 
 <Note>
-  Today, system faces are the only publicly shared faces, and they come from the `head` account. The ability for **users to publish their own faces** for others to use may arrive in the future — when it does, the same `owner:alias` addressing described here will apply.
+  System faces are no longer the only faces you can reach from another account. **Any owner can now publish a face**, and can share one with named accounts instead. The `owner:alias` addressing described here is the same in every case — see [Sharing Faces](/guides/sharing).
 </Note>
 
 ---
@@ -35,7 +35,7 @@ Published faces are returned alongside any faces you own. Each system face has `
   "object": "list",
   "data": [
     {
-      "alias": "logician",
+      "alias": "maestro",
       "owned_by": "head",
       "published": true,
       "default_model": null,
@@ -58,7 +58,7 @@ curl -X POST https://api.faces.sh/v1/chat/completions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "head:logician@gpt-5.4",
+    "model": "head:maestro@gpt-5.4",
     "messages": [
       {"role": "user", "content": "Find the flaw in this argument: ..."}
     ]
@@ -68,7 +68,7 @@ curl -X POST https://api.faces.sh/v1/chat/completions \
 The handle works identically on all three chat endpoints (`/v1/chat/completions`, `/v1/messages`, `/v1/responses`) and behaves just like one of your own faces — the persona is injected automatically, and your account is billed for the inference. See [Model addressing](/guides/chat#model-override-syntax) for the full grammar.
 
 <Warning>
-  Always include `@<model>` when chatting a system face — e.g. `head:logician@gpt-5.4`. System faces don't carry a `default_model`, so the bare handle `head:logician` returns **`400`** ("no default_model set"). Pick any model from [`/v1/models`](/guides/chat#supported-models).
+  Always include `@<model>` when chatting a system face — e.g. `head:maestro@gpt-5.4`. System faces don't carry a `default_model`, so the bare handle `head:maestro` returns **`400`** ("no default_model set"). Pick any model from [`/v1/models`](/guides/chat#supported-models).
 </Warning>
 
 ---
