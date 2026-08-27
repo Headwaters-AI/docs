@@ -178,7 +178,7 @@ curl "https://api.faces.sh/v1/faces?tag=client:acme&team_id=T1&team_id=T2" \
 
 ### Include published (system) faces
 
-By default the list returns only faces you own. Pass `?include_published=true` to also include faces published system-wide — the [system faces](/guides/system-faces) under the `head` account, and any face another account has chosen to publish. Each published item has `published: true` and an `owned_by` you combine into the chat handle `owned_by:alias` (e.g. `head:maestro`).
+By default the list returns only faces you own. Pass `?include_published=true` to also include faces published system-wide — the [system faces](/guides/system-faces) under the `head` account, and any face another account has chosen to publish. Each published item has `published: true` and an `owned_by` you combine into the chat handle `owned_by:alias` (e.g. `head:socrates`).
 
 To see faces made available to **you specifically** rather than to everybody, pass `?include_shared=true`. The two are independent and neither implies the other — see [Sharing Faces](/guides/sharing).
 

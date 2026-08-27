@@ -1303,6 +1303,68 @@
             "description": "Optional enrichment fields to include on each face item. Repeatable or comma-separated. Recognized values: 'tags', 'teams', 'profile'. Unknown values are silently ignored. The face description is always included; tags, teams, and the compiled-profile fields (profile_token_count, total_tokens_saved, component_counts, compile_tokens_synced, last_synced_at) are populated only when requested here, and returned as null otherwise."
           },
           {
+            "name": "not_from_users",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "not_from_users"
+            },
+            "description": "Blocklist: exclude these owner usernames from PUBLISHED results (repeatable). Mutually exclusive with from_users."
+          },
+          {
+            "name": "from_users",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "from_users"
+            },
+            "description": "Allowlist: restrict PUBLISHED results to these owner usernames (repeatable). Mutually exclusive with not_from_users."
+          },
+          {
+            "name": "include_published",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Published"
+            },
+            "description": "Also include faces published system-wide by other accounts. Each such item has published=true and a chat handle of <owned_by>:<alias>. Defaults to false."
+          },
+          {
+            "name": "include_shared",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Shared"
+            },
+            "description": "Also include faces made available to YOU specifically \u2014 named directly, or on the roster of a workspace you belong to. Each such item carries `via` saying which applies; a face reachable both ways appears ONCE carrying both. Independent of include_published. Defaults to false."
+          },
+          {
             "name": "authorization",
             "in": "header",
             "required": false,
@@ -6018,6 +6080,150 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/faces/{face_id}/share": {
+      "patch": {
+        "tags": [
+          "Faces"
+        ],
+        "summary": "Share Face",
+        "operationId": "share_face_v1_faces__face_id__share_patch",
+        "description": "Share a face with specific accounts, or revoke that sharing.\n\nSend the COMPLETE list every time: this replaces the whole set rather than adding to it, so a username you omit loses access the moment the request succeeds, and `[]` revokes everyone.\n\nNamed accounts can chat with the face via `<owner>:<alias>`. They cannot read its documents, compile it, change it, or share it onward. Billing is unchanged: the owner pays to compile, the caller pays their own inference.\n\n`published: true` is a global override and outranks this \u2014 while a face is published, everyone can chat with it regardless of who it is shared with.\n\nOnly the face owner may change this. Every username must belong to an existing account; an unknown one returns 404 naming it and changes nothing.",
+        "parameters": [
+          {
+            "name": "face_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Face Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareFaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareFaceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The face is not yours, or a named account does not exist."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/faces/{face_id}/publish": {
+      "patch": {
+        "tags": [
+          "Faces"
+        ],
+        "summary": "Publish Face",
+        "operationId": "publish_face_v1_faces__face_id__publish_patch",
+        "description": "Publish or unpublish a face system-wide.\n\nA published face is chattable by any account via `<owner>:<alias>`. The owner keeps paying to compile it; other accounts pay their own inference. Unpublishing revokes access immediately.\n\nAny face owner may publish their own face. To make a face available to specific people instead of everyone, use PATCH /v1/faces/{face_id}/share.",
+        "parameters": [
+          {
+            "name": "face_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Face Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishFaceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishFaceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The face is not yours."
           },
           "422": {
             "description": "Validation Error",
@@ -10774,6 +10980,100 @@
           "name"
         ],
         "title": "WorkspaceResponse"
+      },
+      "ShareFaceRequest": {
+        "type": "object",
+        "title": "ShareFaceRequest",
+        "required": [
+          "shared_with"
+        ],
+        "properties": {
+          "shared_with": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "title": "Shared With",
+            "description": "The COMPLETE set of account usernames this face is shared with. Replace semantics: a username omitted here loses access immediately, and [] revokes all sharing. Every name must belong to an existing account."
+          }
+        }
+      },
+      "ShareFaceResponse": {
+        "type": "object",
+        "title": "ShareFaceResponse",
+        "required": [
+          "alias",
+          "shared_with"
+        ],
+        "properties": {
+          "alias": {
+            "type": "string",
+            "title": "Alias"
+          },
+          "shared_with": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "title": "Shared With"
+          },
+          "handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handle",
+            "description": "<owner>:<alias>, the handle grantees chat with. Null when nothing is shared."
+          }
+        }
+      },
+      "PublishFaceRequest": {
+        "type": "object",
+        "title": "PublishFaceRequest",
+        "required": [
+          "published"
+        ],
+        "properties": {
+          "published": {
+            "type": "boolean",
+            "title": "Published",
+            "description": "true = chattable by every account; false = unpublish, effective immediately."
+          }
+        }
+      },
+      "PublishFaceResponse": {
+        "type": "object",
+        "title": "PublishFaceResponse",
+        "required": [
+          "alias",
+          "published"
+        ],
+        "properties": {
+          "alias": {
+            "type": "string",
+            "title": "Alias"
+          },
+          "published": {
+            "type": "boolean",
+            "title": "Published"
+          },
+          "handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handle",
+            "description": "<owner>:<alias> while published, else null."
+          }
+        }
       }
     }
   }
