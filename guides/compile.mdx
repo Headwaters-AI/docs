@@ -64,6 +64,19 @@ Accepted values are the same set the chat API uses: `email`, `text message`,
 `sms` and `op-ed` are folded automatically. An unrecognised value is rejected with
 `422` listing the valid ones, rather than being guessed at.
 
+`medium` works on file uploads too:
+
+```bash
+curl -X POST "https://api.faces.sh/v1/faces/alice/upload?type=document&medium=essay" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@essay.txt"
+```
+
+It applies to `type=document` only. The structured types (`thread`, `thread_json`,
+`email_jsonl`) carry a kind per message derived from the file itself, so one label for
+the whole upload would be the wrong shape — sending `medium` with those returns `422`
+saying so, rather than ignoring it.
+
 `medium` can also be set later with `PATCH /v1/compile/documents/{id}`, which applies
 from the next compile.
 

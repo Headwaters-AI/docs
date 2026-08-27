@@ -73,6 +73,26 @@ The `model` field accepts these shapes on **all three endpoints** (`/v1/chat/com
 
 ---
 
+## When a parameter did not take effect
+
+If your account is linked to a ChatGPT subscription, some requests are routed through
+it. That route does not accept every parameter, and rather than fail the request we
+remove the ones it rejects — today `max_output_tokens` and `temperature`.
+
+When that happens the response says so:
+
+```
+x-faces-dropped-params: max_output_tokens,temperature
+```
+
+The header is **absent when nothing was dropped**, so its presence always means
+something. It is comma-separated, in a stable order.
+
+Read it rather than guessing: the same request can be routed to the paid API instead,
+where those parameters *are* honoured, and there is no way to tell which route ran until
+the response arrives. If you surface a warning to your users, key it on this header —
+warning ahead of time would be wrong every time the other route is taken.
+
 ## Telling the face what you are writing
 
 A face writes differently for different occasions. If your application already knows

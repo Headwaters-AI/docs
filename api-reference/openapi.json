@@ -2052,6 +2052,23 @@
             }
           },
           {
+            "name": "medium",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Medium"
+            },
+            "description": "type=document ONLY: what the uploaded file IS \u2014 email, essay, conversation, and so on. Declaring it beats having us infer it later. Rejected with 422 on the structured types (thread, thread_json, email_jsonl), which carry a kind per message derived from the file rather than one label for the whole upload."
+          },
+          {
             "name": "authorization",
             "in": "header",
             "required": false,
@@ -2241,6 +2258,15 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            },
+            "headers": {
+              "x-faces-dropped-params": {
+                "description": "Present ONLY when the request was routed through a linked ChatGPT account (the Connect plan) and one or more parameters were removed before forwarding, because that route rejects them. Comma-separated, in a stable order, e.g. `max_output_tokens,temperature`.\n\nAbsent means nothing was dropped, so its presence always means something. Treat it as the authoritative answer to \"did my parameter take effect\": the same request can be routed to the paid API instead, where the parameters ARE honoured, and a client cannot tell which route ran until the response arrives.",
+                "schema": {
+                  "type": "string",
+                  "example": "max_output_tokens,temperature"
+                }
               }
             }
           },
@@ -4459,6 +4485,15 @@
               "application/json": {
                 "schema": {}
               }
+            },
+            "headers": {
+              "x-faces-dropped-params": {
+                "description": "Present ONLY when the request was routed through a linked ChatGPT account (the Connect plan) and one or more parameters were removed before forwarding, because that route rejects them. Comma-separated, in a stable order, e.g. `max_output_tokens,temperature`.\n\nAbsent means nothing was dropped, so its presence always means something. Treat it as the authoritative answer to \"did my parameter take effect\": the same request can be routed to the paid API instead, where the parameters ARE honoured, and a client cannot tell which route ran until the response arrives.",
+                "schema": {
+                  "type": "string",
+                  "example": "max_output_tokens,temperature"
+                }
+              }
             }
           },
           "422": {
@@ -4517,6 +4552,15 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            },
+            "headers": {
+              "x-faces-dropped-params": {
+                "description": "Present ONLY when the request was routed through a linked ChatGPT account (the Connect plan) and one or more parameters were removed before forwarding, because that route rejects them. Comma-separated, in a stable order, e.g. `max_output_tokens,temperature`.\n\nAbsent means nothing was dropped, so its presence always means something. Treat it as the authoritative answer to \"did my parameter take effect\": the same request can be routed to the paid API instead, where the parameters ARE honoured, and a client cannot tell which route ran until the response arrives.",
+                "schema": {
+                  "type": "string",
+                  "example": "max_output_tokens,temperature"
+                }
               }
             }
           },
