@@ -1,0 +1,147 @@
+---
+title: Voiceprinting
+description: Build a voice map from a person's own writing, and compile it into a face.
+---
+
+# Voiceprinting
+
+A **voiceprint** reads a body of someone's writing and produces a *voice map* — a
+description of how that person writes — then compiles a hidden face on it.
+
+It is one half of a pair, and knowing which half does what saves a lot of confusion:
+
+| | produced by |
+| --- | --- |
+| the **voice map**, and the face built on it | the voiceprint |
+| **writing rules** and **style exemplars** | the ordinary compile |
+
+So a caller who prints without compiling gets a map and nothing else. That is a coherent
+result, and almost never the intended one — which is why the print request compiles for
+you by default.
+
+---
+
+## 1. Get the material onto the face
+
+Two shapes, and the choice is about what the material *is*, not which is better.
+
+### Documents — one piece of writing per file
+
+```bash
+curl -X POST "https://api.faces.sh/v1/faces/alice/upload?type=document&medium=essay&perspective=first-person" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@essay.txt"
+```
+
+Two fields matter and both are declared, never inferred:
+
+- **`medium`** — what the file *is*: `email`, `essay`, `conversation`, `blog post`,
+  `academic paper`, `legal document`, `social post`, `text message`, `thread reply`.
+- **`perspective`** — `first-person` if the subject wrote it, `third-person` if it is
+  *about* them. A third-person document still contributes knowledge, but teaches no
+  voice: rules read off somebody else's prose about a person describe the wrong writer.
+
+### Corpus uploads — many messages in one file
+
+For a mailbox or a transcript export, upload the whole thing and let it be chunked:
+
+```bash
+curl -X POST "https://api.faces.sh/v1/faces/alice/upload?type=email_jsonl&emails_per_thread=50" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@mail.jsonl"
+```
+
+Returns **`room_ids`** — several of them — plus `skipped`, itemising any message that
+failed validation. This is lenient by design: a corpus is statistical, so one malformed
+row should not lose you the upload. Pass `?strict=true` to make it all-or-nothing.
+
+<Note>
+  Corpus uploads take no `medium`. Each message carries its own kind derived from the
+  file, so one label for the whole mailbox would be the wrong shape — sending it returns
+  `422`. You declare the kind at print time instead, per source.
+</Note>
+
+---
+
+## 2. Print
+
+One call names every source and what each contains:
+
+```bash
+curl -X POST "https://api.faces.sh/v1/voiceprint/builds" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "self_face": "alice",
+    "model": "gpt-5.6-terra",
+    "sources": [
+      {"id": "<room_id_1>", "kind": "email", "source_type": "room"},
+      {"id": "<room_id_2>", "kind": "email", "source_type": "room"},
+      {"id": "<doc_id>",    "kind": "essay", "source_type": "document"}
+    ]
+  }'
+```
+
+`sources` is **required** and has no default. Every source declares its own `kind`, and
+each kind is analysed separately — so an essay never contributes a rule to an email. That
+is the whole reason there is no default: a voiceprint that guessed came to mean "how this
+person writes email" whatever the corpus actually held.
+
+Returns `202` and a `job_id`.
+
+### `compile` — on by default
+
+Any named source that has not been compiled is compiled first, then printed. That is
+what gets you writing rules and style exemplars alongside the map.
+
+It covers documents and **corpus rooms**. A live compile thread or an interview is
+refused with a `422`, because those are compiled as their messages arrive and are charged
+per message — printing one should not silently bill you for a turn you did not send.
+Compile it explicitly, or pass `compile: false`.
+
+Already-compiled sources are never recompiled.
+
+---
+
+## 3. Poll
+
+```bash
+curl "https://api.faces.sh/v1/voiceprint/builds/<job_id>" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+`queued → intake → analyzing → applying → done`. The report carries the voice map size,
+the exemplars harvested, and which kinds were analysed.
+
+---
+
+## Choosing the model
+
+The analyst model runs the whole build — five lenses plus a synthesiser — so it is the
+most expensive part, and **which model you pick decides who pays**.
+
+Codex-eligible models (the `gpt-5.x` family, such as `gpt-5.6-terra`) route through a
+linked ChatGPT subscription and cost the user nothing. Anything not codex-eligible always
+goes to the paid path.
+
+<Warning>
+  Do not reach for a non-codex model to "avoid OAuth problems". It makes your users pay
+  for something they could have had free. If a build fails with `CHATGPT_AUTH`, the link
+  has expired — reconnect it rather than switching models.
+</Warning>
+
+`oauth_only` defaults to **true**, so a build is free or it does not happen. Setting it
+`false` permits the paid path, but the fallback is narrower than it sounds: only a genuine
+quota exhaustion falls back. An expired link is an auth failure and is surfaced, never
+silently billed.
+
+---
+
+## Scoring
+
+`holdout_count` (default 120) and `min_valid` (default 550) hold messages back to score
+the result. **They apply to room messages only.** A build from documents alone skips them
+and completes *unscored* — pass `holdout_count: 0` to make that explicit rather than
+accidental.
+
+See [Voiceprint scoring](/guides/voiceprint-scoring) for reading the numbers.
