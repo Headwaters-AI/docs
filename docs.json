@@ -43,6 +43,7 @@
             "pages": [
               "guides/faces",
               "guides/system-faces",
+              "guides/sharing",
               "guides/teams",
               "guides/workspaces",
               "guides/chat",

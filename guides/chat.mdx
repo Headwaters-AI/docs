@@ -59,12 +59,12 @@ The `model` field accepts these shapes on **all three endpoints** (`/v1/chat/com
 | --- | --- |
 | `"alice"` (bare alias) | One of **your own** faces, using its `default_model`. **`404`** if the alias isn't an owned face; **`400`** if the face has no `default_model` set. |
 | `"alice@gpt-4o-mini"` | Your own face's persona with the specified model. |
-| `"head:logician@gpt-5.4"` (namespaced) | A **system face** — a published persona under another account (here `head`), addressed as `owner:alias`. Billed to *your* account. **`404`** if the owner or published face doesn't exist. See [System Faces](/guides/system-faces). |
+| `"head:socrates@gpt-5.4"` (namespaced) | A face owned by another account — a [system face](/guides/system-faces), or one that was [published or shared with you](/guides/sharing) — addressed as `owner:alias`. Billed to *your* account. **`404`** if the owner or published face doesn't exist. See [System Faces](/guides/system-faces). |
 | `"(alice \| bob)@gpt-4o-mini"` (composite) | A **run-time composite** — a formula over your own faces, composed on the fly. Operators `\| & - ^` and parentheses. `@model` is required. See [Synthetic Faces → Run-time composites](/guides/synthetic-faces#run-time-composites-compose-on-the-fly). |
 | `"gpt-4o-mini"` (bare model) | Plain LLM passthrough — no persona injected. See [Face templates](#face-templates) for using face profiles without a primary persona. |
 
 <Note>
-  The `:` separates an owner account from the face alias. A bare alias (`alice`) only ever resolves your own faces; to use a face owned by another account it must be published and addressed as `owner:alias` (e.g. `head:logician`). System faces don't set a `default_model`, so always include `@<model>`.
+  The `:` separates an owner account from the face alias. A bare alias (`alice`) only ever resolves your own faces; to use a face owned by another account it must be published, or shared with you, and addressed as `owner:alias` (e.g. `head:socrates`). System faces don't set a `default_model`, so always include `@<model>`.
 </Note>
 
 <Note>
