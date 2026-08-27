@@ -59,7 +59,7 @@ The `model` field accepts these shapes on **all three endpoints** (`/v1/chat/com
 | --- | --- |
 | `"alice"` (bare alias) | One of **your own** faces, using its `default_model`. **`404`** if the alias isn't an owned face; **`400`** if the face has no `default_model` set. |
 | `"alice@gpt-4o-mini"` | Your own face's persona with the specified model. |
-| `"head:socrates@gpt-5.4"` (namespaced) | A face owned by another account — a [system face](/guides/system-faces), or one that was [published or shared with you](/guides/sharing) — addressed as `owner:alias`. Billed to *your* account. **`404`** if the owner or published face doesn't exist. See [System Faces](/guides/system-faces). |
+| `"head:socrates@gpt-5.6-terra"` (namespaced) | A face owned by another account — a [system face](/guides/system-faces), or one that was [published or shared with you](/guides/sharing) — addressed as `owner:alias`. Billed to *your* account. **`404`** if the owner or published face doesn't exist. See [System Faces](/guides/system-faces). |
 | `"(alice \| bob)@gpt-4o-mini"` (composite) | A **run-time composite** — a formula over your own faces, composed on the fly. Operators `\| & - ^` and parentheses. `@model` is required. See [Synthetic Faces → Run-time composites](/guides/synthetic-faces#run-time-composites-compose-on-the-fly). |
 | `"gpt-4o-mini"` (bare model) | Plain LLM passthrough — no persona injected. See [Face templates](#face-templates) for using face profiles without a primary persona. |
 
@@ -262,7 +262,7 @@ curl -X PATCH https://api.faces.sh/v1/user/preferences \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "default_model": "gpt-5.4",
+    "default_model": "gpt-5.6-terra",
     "api_fallback": true
   }'
 ```
@@ -321,7 +321,7 @@ print(response.choices[0].message.content)
 
 ## OAuth routing (Connect plan)
 
-Connect-plan users with a linked ChatGPT account get codex-eligible models (gpt-5.x) routed through their ChatGPT subscription at no cost — but **only at `POST /v1/responses`** (the ChatGPT/Codex backend implements the Responses API, not Chat Completions). When you request a model like `gpt-5.4` via `/v1/responses`, the API tries the Codex OAuth endpoint first. If OAuth is unavailable or fails, it falls back to the system API key (which charges your credit balance) — unless fallback is disabled.
+Connect-plan users with a linked ChatGPT account get codex-eligible models (gpt-5.x) routed through their ChatGPT subscription at no cost — but **only at `POST /v1/responses`** (the ChatGPT/Codex backend implements the Responses API, not Chat Completions). When you request a model like `gpt-5.6-terra` via `/v1/responses`, the API tries the Codex OAuth endpoint first. If OAuth is unavailable or fails, it falls back to the system API key (which charges your credit balance) — unless fallback is disabled.
 
 <Warning>
   Calling a codex-eligible model at **`/v1/chat/completions`** does **not** use free OAuth routing. For a connected Connect-plan user, the API returns a `409` with `detail.error = "use_responses_for_free_oauth"` instead of charging. **Route codex-eligible models to `/v1/responses` instead** — they work there for everyone (free if connected, paid otherwise). This is also exactly what the model's `endpoint` field in [`/v1/models`](#supported-models) tells you to do, so routing by `endpoint` handles codex correctly without any connection-awareness.
@@ -338,7 +338,7 @@ curl -X POST https://api.faces.sh/v1/responses \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "alice@gpt-5.4",
+    "model": "alice@gpt-5.6-terra",
     "input": [{"role": "user", "content": "Hi!"}],
     "oauth_only": true
   }'
